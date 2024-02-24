@@ -1,0 +1,15 @@
+name,firstName,lastName,slug,shortName,position,jerseyNumber,userCount,id,averageX,averageY,pointsCount,team
+Jesús Castillo,,,jesus-castillo,J. Castillo,M,15,81,913398,34.1125,60.9875,8,Alianza Lima
+Renzo Garces,,,renzo-garces,R. Garces,D,6,70,874985,25.6,34.0,1,Alianza Lima
+Cecilio Waterman,,,cecilio-waterman,C. Waterman,F,30,249,159931,65.15,46.679166666667,24,Alianza Lima
+Franco Zanelatto,,,franco-zanelatto,F. Zanelatto,M,7,317,973650,50.813333333333,78.486666666667,15,Alianza Lima
+Adrián Arregui,,,adrian-arregui,A. Arregui,M,5,76,789372,56.614,44.452,50,Alianza Lima
+Aldair Fuentes,,,aldair-fuentes,A. Fuentes,M,20,128,876927,29.572307692308,50.038461538462,65,Alianza Lima
+Ricardo Lagos,,,ricardo-lagos,R. Lagos,D,13,91,973682,56.797368421053,74.628947368421,38,Alianza Lima
+Franco Saravia,,,franco-saravia,F. Saravia,G,32,78,973547,9.0769230769231,52.526923076923,26,Alianza Lima
+Juan Freytes,,,juan-freytes,J. Freytes,D,2,44,962187,40.714754098361,79.309836065574,61,Alianza Lima
+Sebastián Rodríguez,,,sebastian-rodriguez,S. Rodríguez,M,10,212,47418,55.158974358974,55.205128205128,39,Alianza Lima
+Hernán Barcos,,,hernan-barcos,H. Barcos,F,9,447,31175,60.519298245614,52.252631578947,57,Alianza Lima
+Catriel Cabellos,Catriel Cabellos,,cabellos-catriel,C. Cabellos,M,27,316,1415942,56.513846153846,33.42,65,Alianza Lima
+Kevin Serna,,,serna-kevin,K. Serna,M,26,97,981374,62.655714285714,16.274285714286,70,Alianza Lima
+Jiovany Ramos,,,ramos-jiovany,J. Ramos,D,29,58,1006509,34.269318181818,15.393181818182,88,Alianza Lima
