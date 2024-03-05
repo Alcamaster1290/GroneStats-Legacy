@@ -11,7 +11,7 @@ nombres_jornadas = {
         "J3": "Jornada 3 - Local vs Universitario de Deportes",
         "J4": "Jornada 4 - Visita vs Unión Comercio",
         "J5": "Jornada 5 - Local vs Comerciantes Unidos",
-        "J6": "Jornada 6 - Visita vs ADT",
+        #"J6": "Jornada 6 - Visita vs ADT",
     }
 
 def agregar_graficos_lineas(df, jugador_seleccionado):
@@ -104,7 +104,7 @@ def draw_player_heatmaps(jugador):
     cols = 2
     rows = -(-num_jornadas // cols)  # Redondeo hacia arriba
     fig, axs = plt.subplots(rows, cols, figsize=(10 * cols, 7 * rows))
-    fig.subplots_adjust(hspace=0.5, wspace=0.2)
+    fig.subplots_adjust(hspace=0.5, wspace=0.5)
     axs = axs.flatten()
     plot_counter = 0
     for jornada, archivo_excel in heatmaps.items():
@@ -136,16 +136,12 @@ def cargar_datos_jugadores():
     return df
 
 # Empieza el codeo de la app
-
-st.title('Analisis de jugadores de Alianza Lima Temporada 2024')
+st.set_page_config(page_title="Analisis de jugadores de Alianza Lima Temporada 2024",layout='wide',)
 
 # Preparar el pitch para los heatmaps
 pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
 
 df = cargar_datos_jugadores()
-
-# Boton de Seleccion de Jugador
-jugador_selector = st.selectbox('Selecciona un jugador:', sorted(df['Jugador'].unique()))
 
 # Función para cargar los DataFrames de posiciones medias y heatmaps para todas las jornadas
 def cargar_datos_mapas():
@@ -164,6 +160,12 @@ def cargar_datos_mapas():
 # Carga de datos de posiciones medias y heatmaps (ajusta las rutas de los archivos según corresponda)
 df_posiciones_medias, heatmaps = cargar_datos_mapas()
 
-# Botón para generar informe
-if st.button('Generar mapas de calor'):
-    draw_player_heatmaps(jugador_selector)
+pantalla_botones, pantalla_heatmaps, pantalla_jugador, pantalla_resumen = st.columns([1,4,1,2])
+# Boton de Seleccion de Jugador
+jugador_selector = st.selectbox('Selecciona un jugador:', sorted(df['Jugador'].unique()),key='jugador_selector')
+
+with pantalla_botones:
+
+    if st.button('Generar mapas de calor'):
+        with pantalla_heatmaps:
+            draw_player_heatmaps(jugador_selector)
