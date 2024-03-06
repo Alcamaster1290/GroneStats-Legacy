@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
+import plotly.express as px
 from mplsoccer.pitch import VerticalPitch
 
 nombres_jornadas = {
@@ -13,6 +14,37 @@ nombres_jornadas = {
         "J5": "Jornada 5 - Local vs Comerciantes Unidos",
         "J6": "Jornada 6 - Visita vs ADT",
 }
+@st.cache_resource
+def generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors):
+    # Extraer los datos de estas estadísticas para el jugador seleccionado de df
+    datos_jugador = df[df['Jugador'] == jugador_selector]
+    datos_acumulados = datos_jugador[estadisticas_ofensivas].sum()
+    # Crear el histograma con Plotly Graph Objects
+    fig = go.Figure(data=[
+        go.Bar(
+            x=e_o,
+            y=datos_acumulados.values,
+            marker=dict(color=e_o_colors)
+        )
+    ])
+    
+    # Actualizar el diseño del gráfico
+    fig.update_layout(
+        title=f"Acciones Ofensivas de<br>{jugador_selector}",
+        xaxis_title="Estadística ofensiva",
+        xaxis=dict(
+            tickangle=-45
+        ),
+        yaxis=dict(
+            title="Cantidad total",
+            tickmode='array',
+            tickvals=list(range(int(min(datos_acumulados.values)), int(max(datos_acumulados.values)) + 1)),
+        ),
+        template='plotly_dark',
+        height=350,
+    )
+    
+    return fig
 
 @st.cache_data
 def draw_player_heatmaps(jugador,df_posiciones_medias,heatmaps):
@@ -45,12 +77,6 @@ def draw_player_heatmaps(jugador,df_posiciones_medias,heatmaps):
     plt.tight_layout()
     st.pyplot(fig)
 
-@st.cache_data
-def cargar_datos_jugadores():
-    # Carga de datos de los jugadores y estadísticas de pases
-    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/XLSX finales/Resumen_AL_Jugadores.xlsx')
-    return df
-
 @st.cache_resource
 # Función para cargar los DataFrames de posiciones medias y heatmaps para todas las jornadas
 def cargar_datos_mapas():
@@ -77,6 +103,12 @@ def cargar_general():
     df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/ALIANZA LIMA 2024.xlsx')
     return df
 
+@st.cache_data
+def cargar_datos_jugadores():
+    # Carga de datos de los jugadores y estadísticas de pases
+    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/XLSX finales/Resumen_AL_Jugadores.xlsx')
+    return df
+
 def main():
     configurar_pagina()
     
@@ -91,8 +123,20 @@ def main():
     with pantalla_botones:
         # Botón de Selección de Jugador
         jugador_selector = st.selectbox('Selecciona un jugador:', sorted(df['Jugador'].unique()), key='jugador_selector')
-        # Encuentra los detalles del jugador en el DataFrame maestro
         detalles_jugador = df_maestro[df_maestro['Jugador'] == jugador_selector].iloc[0]
+        # Definir estadísticas de acciones ofensivas
+        estadisticas_ofensivas = ['Contiendas Ganadas', 'Total de Contiendas', 'Tiros Fuera','Intentos de Anotacion Bloqueados', 
+                                  'Intentos de Anotacion al Arco', 
+                                  'Balones al Poste']
+        e_o = ['Regates Ganados','Regates Intentados','Tiros Fuera','Tiros Bloqueados',
+               'Tiros al Arco', 'Balones al Poste']
+        e_o_colors = ['green','blue','red','green','blue','blue']
+        
+        fig = generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors)
+        
+        # Mostrar el gráfico en pantalla_botones
+        st.plotly_chart(fig, use_container_width=True)
+
 
     with pantalla_heatmaps:
         st.header('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
@@ -106,10 +150,10 @@ def main():
                 draw_player_heatmaps(jugador_selector, df_posiciones_medias, heatmaps)
     
         with col_minutos:
-            st.subheader("Minutos Jugados por Jornada")
+            st.subheader("Minutos jugados por Jornada")
     
             jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
-                'J5 - Minutos', 'J6 - Minutos', 'J7 - Minutos']
+                'J5 - Minutos', 'J6 - Minutos']
             for jornada in jornadas:
                 minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
                 # Verificar si minutos es NaN o 0
@@ -124,17 +168,36 @@ def main():
         st.subheader('Detalles del Jugador', anchor=None)
         st.markdown(f"<span style='color: grey;'>Posición: {detalles_jugador['Posición']}</span>", unsafe_allow_html=True)
         st.markdown(f"<span style='color: blue;'>Dorsal: {detalles_jugador['Dorsal']}</span>", unsafe_allow_html=True)
-        # Crea tres columnas dentro de pantalla_jugador para centrar los datos
-        col1, col2, col3 = st.columns([1, 3, 1])
-    
+        st.markdown("<hr>", unsafe_allow_html=True)
+        col1, col2 = st.columns([3.75, 5])
+
+        datos_jugador = df[df['Jugador'] == jugador_selector]
+        datos_acumulados = datos_jugador.sum()
+        datos_promedio = datos_jugador.mean(numeric_only=True,skipna=True)
+
         with col1:  # Mostrar Tarjetas Rojas y Amarillas
             st.metric(label="T. Rojas", value=detalles_jugador['Rojas'])
             st.metric(label="T. Amarillas", value=detalles_jugador['Amarillas'])
+            st.metric(label="Faltas",value = datos_acumulados['Faltas'])
+            st.metric(label="Recibió falta",value = datos_acumulados['Fue Faltado'])
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.subheader('Concentración defensiva')
+            st.metric(label=f"Penales concedidos:",value=int(datos_acumulados['Penaltis Concedidos']))
+            st.metric(label=f"Balón perdido:",value=int(datos_acumulados['Desposesiones']))
+            st.metric(label="Perdida de posesión:",value=int(datos_acumulados['Posesion Perdida']))
     
         with col2:  # Mostrar Goles, Asistencias y Minutos Jugados
             st.metric(label="Goles", value=detalles_jugador['Goles'])
             st.metric(label="Asistencias", value=detalles_jugador['Asistencias'])
-            st.metric(label="Minutos Jugados", value=f"{detalles_jugador['Minutos']} mins")
-        
+            st.metric(label="Minutos totales", value=f"{detalles_jugador['Minutos']} mins")
+            st.metric(label="Tiempo de juego promedio",value=f"{int(datos_promedio['Minutos Jugados'])} mins" )
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.subheader('Concentración ofensiva')
+            st.metric(label=f"Fallos importantes:", value=int(datos_acumulados['Grandes Oportunidades Falladas']))
+            st.metric(label=f"Fueras de juego:",value=int(datos_acumulados['Total de Fueras de Juego']))
+            st.metric(label=f"Penales ganados:",value=int(datos_acumulados['Penaltis Ganados']))
+            st.metric(label=f"Penales fallados:",value=int(datos_acumulados['Penaltis Fallados']))
+            
+
 if __name__ == "__main__":
     main()
