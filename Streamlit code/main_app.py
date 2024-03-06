@@ -86,7 +86,7 @@ def main():
     # Carga de datos de posiciones medias y heatmaps
     df_posiciones_medias, heatmaps = cargar_datos_mapas()
     
-    pantalla_heatmaps, pantalla_botones, pantalla_jugador = st.columns([4, 2, 3])
+    pantalla_heatmaps, pantalla_botones, pantalla_jugador = st.columns([5, 1.5, 3])
     
     with pantalla_botones:
         # Botón de Selección de Jugador
@@ -96,14 +96,33 @@ def main():
 
     with pantalla_heatmaps:
         st.header('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
-        # Genera los mapas de calor
-        if st.button('Generar mapas de calor'):
-            with pantalla_heatmaps:
+    
+        # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
+        col_heatmap, col_minutos = st.columns([5, 1])
+    
+        with col_heatmap:
+            # Genera los mapas de calor
+            if st.button('Generar mapas de calor'):
                 draw_player_heatmaps(jugador_selector, df_posiciones_medias, heatmaps)
+    
+        with col_minutos:
+            st.subheader("Minutos Jugados por Jornada")
+    
+            jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
+                'J5 - Minutos', 'J6 - Minutos', 'J7 - Minutos']
+            for jornada in jornadas:
+                minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
+                # Verificar si minutos es NaN o 0
+                if not np.isnan(minutos) and minutos != 0:
+                    minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
+                    st.metric(label=jornada, value=f"{minutos}")
+                else:
+                    st.metric(label=jornada, value="N/J")
+
 
     with pantalla_jugador:
         st.subheader('Detalles del Jugador', anchor=None)
-        st.markdown(f"<span style='color: black;'>Posición: {detalles_jugador['Posición']}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color: grey;'>Posición: {detalles_jugador['Posición']}</span>", unsafe_allow_html=True)
         st.markdown(f"<span style='color: blue;'>Dorsal: {detalles_jugador['Dorsal']}</span>", unsafe_allow_html=True)
         # Crea tres columnas dentro de pantalla_jugador para centrar los datos
         col1, col2, col3 = st.columns([1, 3, 1])
