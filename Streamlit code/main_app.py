@@ -15,6 +15,65 @@ nombres_jornadas = {
         "J6": "Jornada 6 - Visita vs ADT",
 }
 @st.cache_resource
+def mostrar_grafica_edad(df):
+    cantidad_jornadas_jugadas = 6  # Actualizar
+
+    minutos_columns = [col for col in df.columns if ' - Minutos' in col]
+    for col in minutos_columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    df[minutos_columns] = df[minutos_columns].fillna(0)
+
+    df = df.sort_values(by='Dorsal')
+    df['Total Minutos'] = df[minutos_columns].sum(axis=1)
+    total_minutos_posibles = 90 * cantidad_jornadas_jugadas
+    df['Porcentaje Minutos Jugados'] = (df['Total Minutos'] / total_minutos_posibles) * 100
+
+    posiciones_unicas = df['Posición'].unique()
+    colores = px.colors.qualitative.Set1
+    mapeo_colores = {pos: colores[i % len(colores)] for i, pos in enumerate(posiciones_unicas)}
+    # Crear el gráfico de dispersión con Plotly
+    fig = go.Figure()
+
+    for i, row in df.iterrows():
+        color = mapeo_colores[row['Posición']]
+        porcentaje_truncado = f"{row['Porcentaje Minutos Jugados']:.2f}"  # Formatear a dos decimales
+        fig.add_trace(go.Scatter(
+            x=[row['Edad 2024']], 
+            y=[row['Porcentaje Minutos Jugados']],
+            mode='markers',
+            marker=dict(size=10, color=color),
+            hoverinfo='text',
+            text=f"{row['Jugador']}: {porcentaje_truncado}%",  # Usar el valor truncado
+            name=row['Jugador']))
+
+    fig.update_layout(
+        title='Edad vs % de Minutos Jugados por Jugador',
+        xaxis_title='Edad',
+        yaxis_title='% de Minutos Jugados',
+        template='plotly_dark',
+        font=dict(color='white'),
+        legend=dict(x=1.05, y=1),
+        xaxis=dict(range=[15, 42], color='white'),
+        yaxis=dict(color='white'),
+        height=600  # Ajustar según necesidad
+    )
+    fig.add_shape(type="rect", x0=30, y0=-6, x1=45, y1=106,
+              line=dict(width=0), fillcolor="red", opacity=0.2)
+
+    # Jugadores de alta competencia (24 a 29 años), en morado
+    fig.add_shape(type="rect", x0=24, y0=-6, x1=29, y1=106,
+              line=dict(width=0), fillcolor="purple", opacity=0.3)
+
+    #    Jugadores jóvenes (21 a 24 años), en rojo claro
+    fig.add_shape(type="rect", x0=21, y0=-6, x1=24, y1=106,
+              line=dict(width=0), fillcolor="blue", opacity=0.15)
+
+    # Potrillos (menos de 20 años), en verde
+    fig.add_shape(type="rect", x0=15, y0=-6, x1=20, y1=106,
+              line=dict(width=0), fillcolor="green", opacity=0.2)
+    st.plotly_chart(fig, use_container_width=True)
+
+@st.cache_resource
 def generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors):
     # Extraer los datos de estas estadísticas para el jugador seleccionado de df
     datos_jugador = df[df['Jugador'] == jugador_selector]
@@ -131,24 +190,23 @@ def main():
         e_o = ['Regates Ganados','Regates Intentados','Tiros Fuera','Tiros Bloqueados',
                'Tiros al Arco', 'Balones al Poste']
         e_o_colors = ['green','blue','red','green','blue','blue']
-        
-        fig = generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors)
-        
-        # Mostrar el gráfico en pantalla_botones
-        st.plotly_chart(fig, use_container_width=True)
-
+        stats_ofensivas = generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors)
+        st.plotly_chart(stats_ofensivas, use_container_width=True) #Muestra la grafica de ofensivas
 
     with pantalla_heatmaps:
-        st.header('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
     
         # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
-        col_heatmap, col_minutos = st.columns([5, 1])
+        col_graficos, col_minutos = st.columns([5, 1])
     
-        with col_heatmap:
+        with col_graficos:
             # Genera los mapas de calor
             if st.button('Generar mapas de calor'):
+                st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
                 draw_player_heatmaps(jugador_selector, df_posiciones_medias, heatmaps)
-    
+            # Mostrar el gráfico en pantalla_heatmaps
+            if st.button('Mostrar gráficas de equipo'):
+                st.subheader('Edad vs % minutos jugados')
+                mostrar_grafica_edad(df_maestro)
         with col_minutos:
             st.subheader("Minutos jugados por Jornada")
     
