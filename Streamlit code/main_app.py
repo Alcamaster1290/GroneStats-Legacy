@@ -6,6 +6,22 @@ import plotly.graph_objects as go
 import plotly.express as px
 from mplsoccer.pitch import VerticalPitch
 
+import ScraperFC as sfc
+from scipy import stats
+
+#Utilizar datos directamente de ScraperFC
+sofascore = sfc.Sofascore()
+
+URLs_jornadas = {
+    "J1": "https://www.sofascore.com/universidad-cesar-vallejo-alianza-lima/lWsGfc#11967822",
+    "J2": "https://www.sofascore.com/alianza-lima-alianza-atletico-de-sullana/hWslW#11981247",
+    "J3": "https://www.sofascore.com/alianza-lima-universitario-de-deportes/fWslW#12005095",
+    "J4": "https://www.sofascore.com/union-comercio-alianza-lima/lWsGtu#12019977",
+    "J5": "https://www.sofascore.com/comerciantes-unidos-alianza-lima/lWsjxKb#12061051",
+    "J6": "https://www.sofascore.com/asociacion-deportiva-tarma-alianza-lima/lWshlJc#12076348",
+    "J7": "https://www.sofascore.com/alianza-lima-club-sporting-cristal/cWslW#12101149",
+}
+
 nombres_jornadas = {
         "J1": "Jornada 1 - Local vs Universidad Cesar Vallejo",
         "J2": "Jornada 2 - Visita vs Alianza Atlético de Sullana",
@@ -13,7 +29,71 @@ nombres_jornadas = {
         "J4": "Jornada 4 - Visita vs Unión Comercio",
         "J5": "Jornada 5 - Local vs Comerciantes Unidos",
         "J6": "Jornada 6 - Visita vs ADT",
+        "J7": "Jornada 7 - Local vs Sporting Cristal"
 }
+
+def ajuste_polinomial(x, y, grado=8):
+    """Realiza un ajuste polinomial de los datos y retorna valores ajustados."""
+    coeficientes = np.polyfit(x, y, grado)
+    polinomio = np.poly1d(coeficientes)
+    return polinomio(x)
+
+def obtener_grafico_match_momentum(url, es_local = True):
+    df = sofascore.match_momentum(url)
+    # Procesar los datos para separar los valores positivos y negativos de momentum
+    momentum_positivo = df[df['value'] > 0]
+    momentum_negativo = df[df['value'] < 0]
+    
+    # Definir colores según si Alianza Lima es local o visitante
+    color_alianza = 'blue' if es_local else 'orange'
+    color_oponente = 'orange' if es_local else 'blue'
+
+    # Crear el gráfico de Plotly
+    fig = go.Figure()
+
+    # Momentum positivo (Alianza Lima si es_local, de lo contrario Oponente)
+    fig.add_trace(go.Bar(
+        x=momentum_positivo['minute'],
+        y=momentum_positivo['value'],
+        name='Alianza Lima' if es_local else 'Oponente',
+        marker_color=color_alianza
+    ))
+
+    # Momentum negativo (Oponente si es_local, de lo contrario Alianza Lima)
+    fig.add_trace(go.Bar(
+        x=momentum_negativo['minute'],
+        y=momentum_negativo['value'],
+        name='Oponente' if es_local else 'Alianza Lima',
+        marker_color=color_oponente
+    ))
+
+    if not momentum_positivo.empty:
+        x_positivo = momentum_positivo['minute']
+        y_positivo = momentum_positivo['value']
+        y_tendencia_positiva = ajuste_polinomial(x_positivo, y_positivo)
+        
+        fig.add_trace(go.Scatter(x=x_positivo, y=y_tendencia_positiva, mode='lines', name='Tendencia Local', line=dict(color=color_alianza, width=2)))
+
+    # Añadir línea de tendencia polinomial para el Oponente
+    if not momentum_negativo.empty:
+        x_negativo = momentum_negativo['minute']
+        y_negativo = -momentum_negativo['value']  # Tomar valor absoluto para el ajuste
+        y_tendencia_negativa = ajuste_polinomial(x_negativo, y_negativo)
+        
+        fig.add_trace(go.Scatter(x=x_negativo, y=-y_tendencia_negativa, mode='lines', name='Tendencia Visita', line=dict(color=color_oponente, width=2)))
+
+    # Actualizar layout del gráfico
+    fig.update_layout(
+        title="Momentum del partido",
+        xaxis_title="Minuto",
+        yaxis_title="Momentum",
+        template="plotly_white",
+        barmode='relative'
+    )
+    
+    # Retornar el gráfico de Plotly
+    return fig
+
 @st.cache_resource
 def mostrar_grafica_edad(df):
     cantidad_jornadas_jugadas = 6  # Actualizar
@@ -74,7 +154,7 @@ def mostrar_grafica_edad(df):
     st.plotly_chart(fig, use_container_width=True)
 
 @st.cache_resource
-def generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors):
+def generar_histograma_ofensivo(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors):
     # Extraer los datos de estas estadísticas para el jugador seleccionado de df
     datos_jugador = df[df['Jugador'] == jugador_selector]
     datos_acumulados = datos_jugador[estadisticas_ofensivas].sum()
@@ -143,7 +223,7 @@ def cargar_datos_mapas():
     heatmaps_total = {}
     for jornada, nombre_jornada in nombres_jornadas.items():
         try:
-            df_temp = pd.read_csv(f'CSV obtenidos/{nombre_jornada}_posicion_jugadores.csv')
+            df_temp = pd.read_csv(f'CSV obtenidos/{jornada}_pos_jugadores.csv')
             df_temp['Jornada'] = jornada
             df_posiciones_medias_total = pd.concat([df_posiciones_medias_total, df_temp])
             heatmaps_total[jornada] = f'CSV obtenidos/{jornada}_heatmaps_jugadores.xlsx'
@@ -171,91 +251,141 @@ def cargar_datos_jugadores():
 def main():
     configurar_pagina()
     
-    df = cargar_datos_jugadores()
-    df_maestro = cargar_general()  # Carga el DataFrame maestro con los detalles de los jugadores
+    df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
+    df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
+    df_posiciones_medias, df_heatmaps = cargar_datos_mapas() # Se cargan los datos de posicion y heatmaps
+    
     st.title('Alianza Lima Temporada 2024')
-    # Carga de datos de posiciones medias y heatmaps
-    df_posiciones_medias, heatmaps = cargar_datos_mapas()
     
-    pantalla_heatmaps, pantalla_botones, pantalla_jugador = st.columns([5, 1.5, 3])
+    jugadores_disponibles = df_maestro['Jugador'].unique()
+
+    selectores, imagenes =  st.columns([5,1])
+    with selectores:
+        # Botón Selección de Jugador
+        jugador_selector = st.selectbox('Selecciona un jugador:', jugadores_disponibles, key='jugador_selector')
     
-    with pantalla_botones:
-        # Botón de Selección de Jugador
-        jugador_selector = st.selectbox('Selecciona un jugador:', sorted(df['Jugador'].unique()), key='jugador_selector')
-        detalles_jugador = df_maestro[df_maestro['Jugador'] == jugador_selector].iloc[0]
-        # Definir estadísticas de acciones ofensivas
-        estadisticas_ofensivas = ['Contiendas Ganadas', 'Total de Contiendas', 'Tiros Fuera','Intentos de Anotacion Bloqueados', 
+        # Filtrar las jornadas en las que participó el jugador seleccionado
+        jornadas_jugador = df[df['Jugador'] == jugador_selector]['Jornada'].unique()
+        nombres_jornadas_invertidos = {v: k for k, v in nombres_jornadas.items()}
+        nombres_jornadas_disponibles = {nombres_jornadas_invertidos[j]: j for j in jornadas_jugador if j in nombres_jornadas_invertidos}
+        jornada_seleccionada = st.selectbox('Selecciona una jornada en la que participó el jugador:', list(nombres_jornadas_disponibles.keys()), format_func=lambda x: nombres_jornadas_disponibles[x])
+    with imagenes:
+        st.markdown("Imagen")
+    
+    pantalla_graficos, pantalla_botones, pantalla_detalles = st.columns([5, 2, 3])
+    
+    if nombres_jornadas_disponibles: 
+        
+        # Obtener url
+        jornada_url = URLs_jornadas[jornada_seleccionada]
+        archivo_excel_heatmap = df_heatmaps.get(jornada_seleccionada)
+
+        with pantalla_botones:
+            #Obtiene los datos de las jornadas del jugador seleccionado
+            detalles_jugador = df[(df['Jugador'] == jugador_selector)]
+
+            datos_jugador = df_maestro[(df_maestro['Jugador'] == jugador_selector )]
+
+            datos_acumulados = detalles_jugador.sum()
+            datos_promedio = detalles_jugador.mean(numeric_only=True,skipna=True)
+            # Mostrar Goles, Asistencias y Minutos Jugados
+            st.metric(label="Goles 2024", value=int(datos_jugador['Goles']))
+            st.metric(label="Asistencias 2024", value=int(datos_jugador['Asistencias']))
+            st.metric(label="Minutos totales", value=f"{int(datos_jugador['Minutos'])} mins")
+
+        
+        with pantalla_graficos:
+    
+            # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
+            col_graficos, col_minutos = st.columns([5, 1])
+    
+            with col_graficos:
+            # Genera los mapas de calor
+                if st.button('Generar mapas de calor'):
+                    st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
+                    # Mostrar heatmap si se ha seleccionado un jugador
+                    if jugador_selector and archivo_excel_heatmap:
+                        with pd.ExcelFile(archivo_excel_heatmap) as xls:
+                            if jugador_selector in xls.sheet_names:
+                                df_heatmap = pd.read_excel(xls, sheet_name=jugador_selector)
+                            if not df_heatmap.empty:
+                                pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+                                fig, ax = pitch.draw(figsize=(10, 7))
+                                pitch.kdeplot(df_heatmap['x'], df_heatmap['y'], ax=ax, levels=100, cmap='Blues', fill=True, shade_lowest=True, alpha=0.5)
+                                fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador_selector) & (df_posiciones_medias['Jornada'] == jornada_seleccionada)]
+                                if not fila_jugador.empty:
+                                    pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
+                                    ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
+                                    ax.set_title(f"{jugador_selector} - {nombres_jornadas[jornada_seleccionada]}", fontsize=14)
+                                st.pyplot(fig)
+                # Mostrar el gráfico de Edad vs minutos jugados del equipo
+                if st.button('Mostrar gráficas de equipo'):
+                    st.subheader('Edad vs % minutos jugados')
+                    mostrar_grafica_edad(df_maestro)
+                    momentum = obtener_grafico_match_momentum(jornada_url, True if "Local" in nombres_jornadas[jornada_seleccionada] else False)
+                    st.plotly_chart(momentum, use_container_width=True)
+        #with col_minutos:
+            #st.subheader("Minutos jugados por Jornada")
+    
+            #jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
+            #    'J5 - Minutos', 'J6 - Minutos']
+           # for jornada in jornadas:
+            #    minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
+           #     # Verificar si minutos es NaN o 0
+           #     if not np.isnan(minutos) and minutos != 0:
+           #         minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
+            #        st.metric(label=jornada, value=f"{minutos}")
+           #     else:
+           #         st.metric(label=jornada, value="N/J")
+
+
+        with pantalla_detalles:
+            st.subheader('Detalles del Jugador', anchor=None)
+        
+            col1, col2 = st.columns([2.25, 5])
+
+            with col1:  
+                st.markdown(f"<span style='color: grey;'>Posición: {datos_jugador['Posición'].item()}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color: blue;'>Dorsal: {datos_jugador['Dorsal'].item()}</span>", unsafe_allow_html=True)
+                st.markdown("<hr>", unsafe_allow_html=True)
+                # Mostrar Tarjetas Rojas y Amarillas
+                st.metric(label="T. Amarillas", value=datos_jugador['Amarillas'])
+                st.metric(label="T. Rojas", value=datos_jugador['Rojas'])
+                st.metric(label="Faltas",value = datos_acumulados['Faltas'].item())
+                st.metric(label="Recibió falta",value = datos_acumulados['Fue Faltado'].item())
+    
+            with col2:
+
+                if st.button('Estadisticas de ataque'):
+                    st.header('Aspecto ofensivo')
+                    # Definir estadísticas de acciones ofensivas
+                    estadisticas_ofensivas = ['Contiendas Ganadas', 'Total de Contiendas', 'Tiros Fuera','Intentos de Anotacion Bloqueados', 
                                   'Intentos de Anotacion al Arco', 
                                   'Balones al Poste']
-        e_o = ['Regates Ganados','Regates Intentados','Tiros Fuera','Tiros Bloqueados',
-               'Tiros al Arco', 'Balones al Poste']
-        e_o_colors = ['green','blue','red','green','blue','blue']
-        stats_ofensivas = generar_histograma(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors)
-        st.plotly_chart(stats_ofensivas, use_container_width=True) #Muestra la grafica de ofensivas
-
-    with pantalla_heatmaps:
-    
-        # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
-        col_graficos, col_minutos = st.columns([5, 1])
-    
-        with col_graficos:
-            # Genera los mapas de calor
-            if st.button('Generar mapas de calor'):
-                st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
-                draw_player_heatmaps(jugador_selector, df_posiciones_medias, heatmaps)
-            # Mostrar el gráfico en pantalla_heatmaps
-            if st.button('Mostrar gráficas de equipo'):
-                st.subheader('Edad vs % minutos jugados')
-                mostrar_grafica_edad(df_maestro)
-        with col_minutos:
-            st.subheader("Minutos jugados por Jornada")
-    
-            jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
-                'J5 - Minutos', 'J6 - Minutos']
-            for jornada in jornadas:
-                minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
-                # Verificar si minutos es NaN o 0
-                if not np.isnan(minutos) and minutos != 0:
-                    minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
-                    st.metric(label=jornada, value=f"{minutos}")
-                else:
-                    st.metric(label=jornada, value="N/J")
-
-
-    with pantalla_jugador:
-        st.subheader('Detalles del Jugador', anchor=None)
-        st.markdown(f"<span style='color: grey;'>Posición: {detalles_jugador['Posición']}</span>", unsafe_allow_html=True)
-        st.markdown(f"<span style='color: blue;'>Dorsal: {detalles_jugador['Dorsal']}</span>", unsafe_allow_html=True)
-        st.markdown("<hr>", unsafe_allow_html=True)
-        col1, col2 = st.columns([3.75, 5])
-
-        datos_jugador = df[df['Jugador'] == jugador_selector]
-        datos_acumulados = datos_jugador.sum()
-        datos_promedio = datos_jugador.mean(numeric_only=True,skipna=True)
-
-        with col1:  # Mostrar Tarjetas Rojas y Amarillas
-            st.metric(label="T. Rojas", value=detalles_jugador['Rojas'])
-            st.metric(label="T. Amarillas", value=detalles_jugador['Amarillas'])
-            st.metric(label="Faltas",value = datos_acumulados['Faltas'])
-            st.metric(label="Recibió falta",value = datos_acumulados['Fue Faltado'])
-            st.markdown("<hr>", unsafe_allow_html=True)
-            st.subheader('Concentración defensiva')
-            st.metric(label=f"Penales concedidos:",value=int(datos_acumulados['Penaltis Concedidos']))
-            st.metric(label=f"Balón perdido:",value=int(datos_acumulados['Desposesiones']))
-            st.metric(label="Perdida de posesión:",value=int(datos_acumulados['Posesion Perdida']))
-    
-        with col2:  # Mostrar Goles, Asistencias y Minutos Jugados
-            st.metric(label="Goles", value=detalles_jugador['Goles'])
-            st.metric(label="Asistencias", value=detalles_jugador['Asistencias'])
-            st.metric(label="Minutos totales", value=f"{detalles_jugador['Minutos']} mins")
-            st.metric(label="Tiempo de juego promedio",value=f"{int(datos_promedio['Minutos Jugados'])} mins" )
-            st.markdown("<hr>", unsafe_allow_html=True)
-            st.subheader('Concentración ofensiva')
-            st.metric(label=f"Fallos importantes:", value=int(datos_acumulados['Grandes Oportunidades Falladas']))
-            st.metric(label=f"Fueras de juego:",value=int(datos_acumulados['Total de Fueras de Juego']))
-            st.metric(label=f"Penales ganados:",value=int(datos_acumulados['Penaltis Ganados']))
-            st.metric(label=f"Penales fallados:",value=int(datos_acumulados['Penaltis Fallados']))
-            
+                    e_o = ['Regates Ganados','Regates Intentados','Tiros Fuera','Tiros Bloqueados',
+                        'Tiros al Arco', 'Balones al Poste']
+                    e_o_colors = ['green','blue','red','green','blue','blue']
+                    stats_ofensivas = generar_histograma_ofensivo(jugador_selector, df, estadisticas_ofensivas, e_o, e_o_colors)
+                    st.plotly_chart(stats_ofensivas, use_container_width=True) #Muestra la grafica de ofensivas
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                    st.subheader('Concentración ofensiva')
+                    st.metric(label=f"Fallos importantes:", value=int(datos_acumulados['Grandes Oportunidades Falladas']))
+                    st.metric(label=f"Fueras de juego:",value=int(datos_acumulados['Total de Fueras de Juego']))
+                    st.metric(label=f"Penales ganados:",value=int(datos_acumulados['Penaltis Ganados']))
+                    st.metric(label=f"Penales fallados:",value=int(datos_acumulados['Penaltis Fallados']))
+                if st.button('Estadisticas de generación de juego'):
+                    st.header('Generación de juego')
+                    estadisticas_generacion = ['Pases Acertados', 'Balones Largos Acertados', 'Centros Acertados',
+                                           'Total de Pases', 'Total de Balones Largos', 'Total de Centros']
+                    #stats_generacion = generar_histograma_generacion(datos_jugador, datos_acumulados, datos_promedio, estadisticas_generacion)
+                
+                if st.button('Estadísticas defensivas'):
+                    st.header('Aspecto defensivo')
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                    st.subheader('Concentración defensiva')
+                    st.metric(label=f"Penales concedidos:",value=int(datos_acumulados['Penaltis Concedidos']))
+                    st.metric(label=f"Balón perdido:",value=int(datos_acumulados['Desposesiones']))
+                    st.metric(label="Perdida de posesión:",value=int(datos_acumulados['Posesion Perdida']))
 
 if __name__ == "__main__":
     main()
