@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from mplsoccer.pitch import VerticalPitch
-
+import os
 import ScraperFC as sfc
 from scipy import stats
 
@@ -256,30 +256,30 @@ def main():
     df_posiciones_medias, df_heatmaps = cargar_datos_mapas() # Se cargan los datos de posicion y heatmaps
     
     st.title('Alianza Lima Temporada 2024')
-    
-    jugadores_disponibles = df_maestro['Jugador'].unique()
 
-    selectores, imagenes =  st.columns([5,1])
+    blank, selectores, imagenes =  st.columns([1,4,2])
+    with blank:
+        mostrar_datos_jugador = blank.button("Mostrar datos jugador")
+        mostrar_datos_jornada = blank.button("Mostrar datos jornada")
+
     with selectores:
-        # Botón Selección de Jugador
+        #Seleccion de jugador y jornada
+        jugadores_disponibles = df_maestro['Jugador'].unique()
         jugador_selector = st.selectbox('Selecciona un jugador:', jugadores_disponibles, key='jugador_selector')
-    
-        # Filtrar las jornadas en las que participó el jugador seleccionado
-        jornadas_jugador = df[df['Jugador'] == jugador_selector]['Jornada'].unique()
-        nombres_jornadas_invertidos = {v: k for k, v in nombres_jornadas.items()}
-        nombres_jornadas_disponibles = {nombres_jornadas_invertidos[j]: j for j in jornadas_jugador if j in nombres_jornadas_invertidos}
-        jornada_seleccionada = st.selectbox('Selecciona una jornada en la que participó el jugador:', list(nombres_jornadas_disponibles.keys()), format_func=lambda x: nombres_jornadas_disponibles[x])
+        jornadas_disponibles = df['Jornada'].unique()
+        jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
     with imagenes:
-        st.markdown("Imagen")
+        ruta_imagen = f"Imagenes/Jugadores/{jugador_selector}.png"
+        
+        # Verificamos si el archivo existe antes de intentar mostrarlo
+        if os.path.exists(ruta_imagen):
+            st.image(ruta_imagen, width=175)  # Puedes ajustar el ancho como lo necesites
+        else:
+            st.markdown(f"No se encontró la imagen para {jugador_selector}")
     
     pantalla_graficos, pantalla_botones, pantalla_detalles = st.columns([5, 2, 3])
     
-    if nombres_jornadas_disponibles: 
-        
-        # Obtener url
-        jornada_url = URLs_jornadas[jornada_seleccionada]
-        archivo_excel_heatmap = df_heatmaps.get(jornada_seleccionada)
-
+    if mostrar_datos_jugador:
         with pantalla_botones:
             #Obtiene los datos de las jornadas del jugador seleccionado
             detalles_jugador = df[(df['Jugador'] == jugador_selector)]
@@ -292,53 +292,6 @@ def main():
             st.metric(label="Goles 2024", value=int(datos_jugador['Goles']))
             st.metric(label="Asistencias 2024", value=int(datos_jugador['Asistencias']))
             st.metric(label="Minutos totales", value=f"{int(datos_jugador['Minutos'])} mins")
-
-        
-        with pantalla_graficos:
-    
-            # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
-            col_graficos, col_minutos = st.columns([5, 1])
-    
-            with col_graficos:
-            # Genera los mapas de calor
-                if st.button('Generar mapas de calor'):
-                    st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
-                    # Mostrar heatmap si se ha seleccionado un jugador
-                    if jugador_selector and archivo_excel_heatmap:
-                        with pd.ExcelFile(archivo_excel_heatmap) as xls:
-                            if jugador_selector in xls.sheet_names:
-                                df_heatmap = pd.read_excel(xls, sheet_name=jugador_selector)
-                            if not df_heatmap.empty:
-                                pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
-                                fig, ax = pitch.draw(figsize=(10, 7))
-                                pitch.kdeplot(df_heatmap['x'], df_heatmap['y'], ax=ax, levels=100, cmap='Blues', fill=True, shade_lowest=True, alpha=0.5)
-                                fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador_selector) & (df_posiciones_medias['Jornada'] == jornada_seleccionada)]
-                                if not fila_jugador.empty:
-                                    pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
-                                    ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
-                                    ax.set_title(f"{jugador_selector} - {nombres_jornadas[jornada_seleccionada]}", fontsize=14)
-                                st.pyplot(fig)
-                # Mostrar el gráfico de Edad vs minutos jugados del equipo
-                if st.button('Mostrar gráficas de equipo'):
-                    st.subheader('Edad vs % minutos jugados')
-                    mostrar_grafica_edad(df_maestro)
-                    momentum = obtener_grafico_match_momentum(jornada_url, True if "Local" in nombres_jornadas[jornada_seleccionada] else False)
-                    st.plotly_chart(momentum, use_container_width=True)
-        #with col_minutos:
-            #st.subheader("Minutos jugados por Jornada")
-    
-            #jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
-            #    'J5 - Minutos', 'J6 - Minutos']
-           # for jornada in jornadas:
-            #    minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
-           #     # Verificar si minutos es NaN o 0
-           #     if not np.isnan(minutos) and minutos != 0:
-           #         minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
-            #        st.metric(label=jornada, value=f"{minutos}")
-           #     else:
-           #         st.metric(label=jornada, value="N/J")
-
-
         with pantalla_detalles:
             st.subheader('Detalles del Jugador', anchor=None)
         
@@ -386,6 +339,61 @@ def main():
                     st.metric(label=f"Penales concedidos:",value=int(datos_acumulados['Penaltis Concedidos']))
                     st.metric(label=f"Balón perdido:",value=int(datos_acumulados['Desposesiones']))
                     st.metric(label="Perdida de posesión:",value=int(datos_acumulados['Posesion Perdida']))
+        
+        
+    if mostrar_datos_jornada:
+        # Obtener url
+        nombres_jornadas_invertidos = {v: k for k, v in nombres_jornadas.items()}
+        clave_jornada = nombres_jornadas_invertidos[jornada_seleccionada]
+        jornada_url = URLs_jornadas[clave_jornada]
+        archivo_excel_heatmap = df_heatmaps.get(jornada_seleccionada)
+        
+        with pantalla_graficos:
+    
+            # Dividiendo la pantalla_heatmaps en dos columnas con proporción 5:1
+            col_graficos, col_minutos = st.columns([5, 1])
+    
+            with col_graficos:
+            # Genera los mapas de calor
+                if st.button('Generar mapas de calor'):
+                    st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
+                    # Mostrar heatmap si se ha seleccionado un jugador
+                    if jugador_selector and archivo_excel_heatmap:
+                        with pd.ExcelFile(archivo_excel_heatmap) as xls:
+                            if jugador_selector in xls.sheet_names:
+                                df_heatmap = pd.read_excel(xls, sheet_name=jugador_selector)
+                            if not df_heatmap.empty:
+                                pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+                                fig, ax = pitch.draw(figsize=(10, 7))
+                                pitch.kdeplot(df_heatmap['x'], df_heatmap['y'], ax=ax, levels=100, cmap='Blues', fill=True, shade_lowest=True, alpha=0.5)
+                                fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador_selector) & (df_posiciones_medias['Jornada'] == jornada_seleccionada)]
+                                if not fila_jugador.empty:
+                                    pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
+                                    ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
+                                    ax.set_title(f"{jugador_selector} - {nombres_jornadas[jornada_seleccionada]}", fontsize=14)
+                                st.pyplot(fig)
+                # Mostrar el gráfico de Edad vs minutos jugados del equipo
+                if st.button('Mostrar gráficas de equipo'):
+                    st.subheader('Edad vs % minutos jugados')
+                    mostrar_grafica_edad(df_maestro)
+                    momentum = obtener_grafico_match_momentum(jornada_url, True if "Local" in nombres_jornadas[jornada_seleccionada] else False)
+                    st.plotly_chart(momentum, use_container_width=True)
+        #with col_minutos:
+            #st.subheader("Minutos jugados por Jornada")
+    
+            #jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
+            #    'J5 - Minutos', 'J6 - Minutos']
+           # for jornada in jornadas:
+            #    minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
+           #     # Verificar si minutos es NaN o 0
+           #     if not np.isnan(minutos) and minutos != 0:
+           #         minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
+            #        st.metric(label=jornada, value=f"{minutos}")
+           #     else:
+           #         st.metric(label=jornada, value="N/J")
+
+
+        
 
 if __name__ == "__main__":
     main()
