@@ -8,6 +8,7 @@ from mplsoccer.pitch import VerticalPitch
 import os
 import ScraperFC as sfc
 from scipy import stats
+from streamlit_option_menu import option_menu
 
 #Utilizar datos directamente de ScraperFC
 sofascore = sfc.Sofascore()
@@ -235,7 +236,8 @@ def configurar_pagina():
     st.set_page_config(
         page_title="Análisis de jugadores de Alianza Lima Temporada 2024",
         layout='wide',
-        page_icon=r'Imagenes\AL.png')
+        page_icon=r'Imagenes\AL.png',
+        initial_sidebar_state="expanded")
 
 @st.cache_data
 def cargar_general():
@@ -250,30 +252,34 @@ def cargar_datos_jugadores():
 
 def main():
     configurar_pagina()
-    
     df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
-    df_posiciones_medias, df_heatmaps = cargar_datos_mapas() # Se cargan los datos de posicion y heatmaps
     
     st.title('Alianza Lima Temporada 2024')
+    # Inicialización de selecciones
+    todas_jornadas = "Todas las jornadas"
+    todos_jugadores = "Todos los jugadores"
+    
+    # Menu lateral
+    with st.sidebar:
+        seleccion = option_menu("Menú Principal", ["Datos del jugador", "Datos de la jornada"],
+                                icons=["person", "calendar"], menu_icon="cast", default_index=0)
 
-    blank, selectores, imagenes =  st.columns([1,4,2])
-    with blank:
-        mostrar_datos_jugador = blank.button("Mostrar datos jugador")
-        mostrar_datos_jornada = blank.button("Mostrar datos jornada")
+    #Dividir la parte inicial
+    selectores, imagenes =  st.columns([4,1])
 
     with selectores:
         #Seleccion de jugador y jornada
-        jugadores_disponibles = df_maestro['Jugador'].unique()
+        jugadores_disponibles = [todos_jugadores] + df_maestro['Jugador'].unique()
         jugador_selector = st.selectbox('Selecciona un jugador:', jugadores_disponibles, key='jugador_selector')
-        jornadas_disponibles = df['Jornada'].unique()
+        jornadas_disponibles = [todas_jornadas] + df['Jornada'].unique()
         jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
     with imagenes:
         ruta_imagen = f"Imagenes/Jugadores/{jugador_selector}.png"
         
         # Verificamos si el archivo existe antes de intentar mostrarlo
         if os.path.exists(ruta_imagen):
-            st.image(ruta_imagen, width=175)  # Puedes ajustar el ancho como lo necesites
+            st.image(ruta_imagen, width=175)
         else:
             st.markdown(f"No se encontró la imagen para {jugador_selector}")
     
@@ -309,7 +315,7 @@ def main():
     
             with col2:
 
-                if st.button('Estadisticas de ataque'):
+                if st.checkbox('Estadisticas de ataque'):
                     st.header('Aspecto ofensivo')
                     # Definir estadísticas de acciones ofensivas
                     estadisticas_ofensivas = ['Contiendas Ganadas', 'Total de Contiendas', 'Tiros Fuera','Intentos de Anotacion Bloqueados', 
@@ -326,13 +332,13 @@ def main():
                     st.metric(label=f"Fueras de juego:",value=int(datos_acumulados['Total de Fueras de Juego']))
                     st.metric(label=f"Penales ganados:",value=int(datos_acumulados['Penaltis Ganados']))
                     st.metric(label=f"Penales fallados:",value=int(datos_acumulados['Penaltis Fallados']))
-                if st.button('Estadisticas de generación de juego'):
+                if st.checkbox('Estadisticas de generación de juego'):
                     st.header('Generación de juego')
                     estadisticas_generacion = ['Pases Acertados', 'Balones Largos Acertados', 'Centros Acertados',
                                            'Total de Pases', 'Total de Balones Largos', 'Total de Centros']
                     #stats_generacion = generar_histograma_generacion(datos_jugador, datos_acumulados, datos_promedio, estadisticas_generacion)
                 
-                if st.button('Estadísticas defensivas'):
+                if st.checkbox('Estadísticas defensivas'):
                     st.header('Aspecto defensivo')
                     st.markdown("<hr>", unsafe_allow_html=True)
                     st.subheader('Concentración defensiva')
@@ -342,11 +348,7 @@ def main():
         
         
     if mostrar_datos_jornada:
-        # Obtener url
-        nombres_jornadas_invertidos = {v: k for k, v in nombres_jornadas.items()}
-        clave_jornada = nombres_jornadas_invertidos[jornada_seleccionada]
-        jornada_url = URLs_jornadas[clave_jornada]
-        archivo_excel_heatmap = df_heatmaps.get(jornada_seleccionada)
+        
         
         with pantalla_graficos:
     
@@ -355,8 +357,16 @@ def main():
     
             with col_graficos:
             # Genera los mapas de calor
-                if st.button('Generar mapas de calor'):
-                    st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
+                if st.checkbox('Generar mapas de calor'):
+                    # st.subheader('Mapas de calor (mayor tonalidad de azul mayor presencia en zona de juego)')
+                    # Obtener url
+                    nombres_jornadas_invertidos = {v: k for k, v in nombres_jornadas.items()}
+                    clave_jornada = nombres_jornadas_invertidos[jornada_seleccionada]
+                    jornada_url = URLs_jornadas[clave_jornada]
+        
+                    df_posiciones_medias, df_heatmaps = cargar_datos_mapas() # Se cargan los datos de posicion y heatmaps
+        
+                    archivo_excel_heatmap = df_heatmaps.get(jornada_seleccionada)
                     # Mostrar heatmap si se ha seleccionado un jugador
                     if jugador_selector and archivo_excel_heatmap:
                         with pd.ExcelFile(archivo_excel_heatmap) as xls:
@@ -373,24 +383,24 @@ def main():
                                     ax.set_title(f"{jugador_selector} - {nombres_jornadas[jornada_seleccionada]}", fontsize=14)
                                 st.pyplot(fig)
                 # Mostrar el gráfico de Edad vs minutos jugados del equipo
-                if st.button('Mostrar gráficas de equipo'):
-                    st.subheader('Edad vs % minutos jugados')
+                if st.checkbox('Mostrar gráficas de equipo'):
+                    # st.subheader('Edad vs % minutos jugados')
                     mostrar_grafica_edad(df_maestro)
                     momentum = obtener_grafico_match_momentum(jornada_url, True if "Local" in nombres_jornadas[jornada_seleccionada] else False)
                     st.plotly_chart(momentum, use_container_width=True)
-        #with col_minutos:
-            #st.subheader("Minutos jugados por Jornada")
+            with col_minutos:
+                st.subheader("Minutos jugados por Jornada")
     
-            #jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
-            #    'J5 - Minutos', 'J6 - Minutos']
-           # for jornada in jornadas:
-            #    minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
-           #     # Verificar si minutos es NaN o 0
-           #     if not np.isnan(minutos) and minutos != 0:
-           #         minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
-            #        st.metric(label=jornada, value=f"{minutos}")
-           #     else:
-           #         st.metric(label=jornada, value="N/J")
+            jornadas = ['J1 - Minutos', 'J2 - Minutos', 'J3 - Minutos', 'J4 - Minutos', 
+                'J5 - Minutos', 'J6 - Minutos']
+         for jornada in jornadas:
+                minutos = detalles_jugador.get(jornada, np.nan)  # Usar np.nan como valor por defecto para manejar adecuadamente la ausencia de datos
+                # Verificar si minutos es NaN o 0
+                if not np.isnan(minutos) and minutos != 0:
+                    minutos = int(minutos)  # Convertir a entero si es un número válido y diferente de 0
+                    st.metric(label=jornada, value=f"{minutos}")
+                else:
+                 st.metric(label=jornada, value="N/J")
 
 
         
