@@ -12,6 +12,9 @@ nombres_jornadas = {
     "J3": "Jornada 3 - Local vs Universitario de Deportes",
     "J4": "Jornada 4 - Visita vs Unión Comercio",
     "J5": "Jornada 5 - Local vs Comerciantes Unidos",
+    "J6": "Jornada 6 - Visita vs ADT",
+    #"J7": "Jornada 7 - Local vs Sporting Cristal",
+    #"J8": "Jornada 8 - Visita vs Cienciano",
 }
 
 # Función para cargar los DataFrames de posiciones medias y heatmaps para todas las jornadas
@@ -21,7 +24,7 @@ def cargar_datos():
     for jornada, nombre_jornada in nombres_jornadas.items():
         try:
             # Cargar el DataFrame de posiciones medias y agregar una columna 'Jornada'
-            df_temp = pd.read_csv(f'CSV obtenidos\\{nombre_jornada}_posicion_jugadores.csv')
+            df_temp = pd.read_csv(f'CSV obtenidos\\{jornada}_pos_jugadores.csv')
             df_temp['Jornada'] = jornada  # Añadir columna 'Jornada' con el identificador de la jornada
             df_posiciones_medias_total = pd.concat([df_posiciones_medias_total, df_temp])
             heatmaps_total[jornada] = f'CSV obtenidos\\{jornada}_heatmaps_jugadores.xlsx'
@@ -33,6 +36,27 @@ df_posiciones_medias, heatmaps = cargar_datos()
 df_posiciones_medias = df_posiciones_medias.sort_values(by='jerseyNumber')
 # Streamlit widget para seleccionar el jugador
 jugador_selector = st.selectbox('Jugador:', df_posiciones_medias['name'].unique())
+
+def draw_heatmap_promedio(jugador):
+    # Calculate the mean position of the player
+    mean_x = df_posiciones_medias[df_posiciones_medias['name'] == jugador]['averageX'].mean()
+    mean_y = df_posiciones_medias[df_posiciones_medias['name'] == jugador]['averageY'].mean()
+
+    # Draw the heatmap with the mean position
+    pitch.draw(ax=ax)
+    for jornada, archivo_excel in heatmaps.items():
+        with pd.ExcelFile(archivo_excel) as xls:
+            if jugador in xls.sheet_names:
+            # Load the data from the sheet into a DataFrame
+                df_heatmap = pd.read_excel(xls, sheet_name=jugador)
+            # Check if the DataFrame is not empty
+                if not df_heatmap.empty:
+                    # Draw a KDE plot on the pitch using the player's positions
+                    pitch.kdeplot(df_heatmap['x'], df_heatmap['y'], ax=ax, levels=100, cmap='Blues', fill=True, shade_lowest=True, alpha=0.5)
+                    # Plot the mean position of the player
+                    pitch.scatter(mean_x, mean_y, ax=ax, s=200, color='red', edgecolors='black', linewidth=2.5, zorder=1)
+                    # Label the mean position with the text 'Mean'
+                    ax.text(mean_y, mean_x, 'Mean', color='white', ha='center', va='center', fontsize=12, zorder=2)
 
 def draw_player_heatmaps(jugador):
     num_jornadas = len(heatmaps)
