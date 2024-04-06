@@ -13,8 +13,10 @@ nombres_jornadas = {
     "J4": "Jornada 4 - Visita vs Unión Comercio",
     "J5": "Jornada 5 - Local vs Comerciantes Unidos",
     "J6": "Jornada 6 - Visita vs ADT",
-    #"J7": "Jornada 7 - Local vs Sporting Cristal",
-    #"J8": "Jornada 8 - Visita vs Cienciano",
+    "J7": "Jornada 7 - Local vs Sporting Cristal",
+    "J8": "Jornada 8 - Visita vs Cienciano",
+    "J9": "Jornada 9 - Local vs Los Chankas",
+    "C1": "Jornada 1 Copa Libertadores - Local vs Fluminense",
 }
 
 # Función para cargar los DataFrames de posiciones medias y heatmaps para todas las jornadas
@@ -24,10 +26,10 @@ def cargar_datos():
     for jornada, nombre_jornada in nombres_jornadas.items():
         try:
             # Cargar el DataFrame de posiciones medias y agregar una columna 'Jornada'
-            df_temp = pd.read_csv(f'CSV obtenidos\\{jornada}_pos_jugadores.csv')
+            df_temp = pd.read_csv(f'Archivos para el tablero final\\{jornada}_AL_posicionesprom.csv')
             df_temp['Jornada'] = jornada  # Añadir columna 'Jornada' con el identificador de la jornada
             df_posiciones_medias_total = pd.concat([df_posiciones_medias_total, df_temp])
-            heatmaps_total[jornada] = f'CSV obtenidos\\{jornada}_heatmaps_jugadores.xlsx'
+            heatmaps_total[jornada] = f'Archivos para el tablero final\\{jornada}_heatmaps_jugadores.xlsx'
         except FileNotFoundError as e:
             st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
     return df_posiciones_medias_total, heatmaps_total
