@@ -138,23 +138,22 @@ def mostrar_grafica_edad(df):
               line=dict(width=0), fillcolor="green", opacity=0.2)
     st.plotly_chart(fig, use_container_width=True)
 
-def mostrar_heatmap_pos_media(jugador,nombre_jornada,df_posiciones_medias,heatmaps):
-    pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+def mostrar_heatmap_pos_media(jugador,nombre_jornada,df_posiciones_medias,df_heatmaps):
     fig, ax = plt.subplots(figsize=(10, 7))
+    pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+    pitch.draw(ax=ax)
 
-    for jornada, archivo_excel in heatmaps.items():
-        with pd.ExcelFile(archivo_excel) as xls:
-            if nombre_jornada in archivo_excel:
-                if jugador in xls.sheet_names:
-                    df_heatmap = pd.read_excel(xls, sheet_name=jugador)
-                    if not df_heatmap.empty:
-                        pitch.draw(ax=ax)
-                        pitch.kdeplot(df_heatmap['x'], df_heatmap['y'], ax=ax, levels=100, cmap='Blues',fill=True, shade_lowest=True, alpha=0.5)
-                        fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador) & (df_posiciones_medias['Jornada'] == jornada)]
-                        if not fila_jugador.empty:
-                            pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
-                            ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
-                            ax.set_title(f"{jugador} - {nombres_jornadas[jornada]}", fontsize=14)
+    for jornada, df_heatmap in df_heatmaps.items():
+        if nombre_jornada in jornada:
+            if jugador in df_heatmap:
+                df_jugador = df_heatmap[jugador]
+                if not df_jugador.empty:
+                    pitch.kdeplot(df_jugador['x'], df_jugador['y'], ax=ax, levels=100, cmap='Blues',fill=True, shade_lowest=True, alpha=0.5)
+                    fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador) & (df_posiciones_medias['Jornada'] == jornada)]
+                    if not fila_jugador.empty:
+                        pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
+                        ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
+                        ax.set_title(f"{jugador} - {nombres_jornadas[jornada]}", fontsize=14)
                 
     plt.tight_layout()
     st.pyplot(fig)
@@ -225,7 +224,7 @@ def cargar_datos_jugadores():
     df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/XLSX finales/Resumen_AL_Jugadores.xlsx')
     return df
 
-def cargar_datos_mapas():
+def cargar_datos_mapas(df_maestro):
     df_posiciones_medias_total = pd.DataFrame()
     heatmaps_total = {}
     for jornada, nombre_jornada in nombres_jornadas.items():
@@ -233,38 +232,63 @@ def cargar_datos_mapas():
             df_temp = pd.read_csv(f'Archivos para el tablero final/{jornada}_AL_posicionesprom.csv')
             df_temp['Jornada'] = jornada
             df_posiciones_medias_total = pd.concat([df_posiciones_medias_total, df_temp])
-            heatmaps_total[jornada] = f'Archivos para el tablero final/{jornada}_heatmaps_jugadores.xlsx'
+            df_heatmap = pd.read_excel(f'Archivos para el tablero final/{jornada}_heatmaps_jugadores.xlsx', sheet_name=None)
+            heatmaps_total[jornada] = {sheet: df for sheet, df in df_heatmap.items() if sheet in df_maestro['Jugador'].values}
         except FileNotFoundError as e:
             st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
-    return df_posiciones_medias_total.sort_values(by='jerseyNumber'), heatmaps_total
+    return df_posiciones_medias_total.sort_values(by='position'), heatmaps_total
 
 def main():
     configurar_pagina()
     df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
-    df_posiciones_medias, df_heatmaps = cargar_datos_mapas() # Se cargan los datos de las posiciones medias y mapa de calor
-    st.title('Alianza Lima Temporada 2024')
+    df_posiciones_medias, df_heatmaps = cargar_datos_mapas(df_maestro) # Se cargan los datos de las posiciones medias y mapa de calor
+    titulo, alianza = st.columns([2,1])
+    with titulo:
+        st.title('Alianza Lima Temporada 2024')
+    with alianza:
+        st.image(f'Imagenes\AL.png', width=80)
     selectores, imagenes =  st.columns([4,1])
+
     with selectores:
-        #Seleccion de jugador y jornada
+        #Seleccion de jornada
+        jornadas_disponibles = [value for key, value in nombres_jornadas.items()]
+        jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
+        
+        if jornada_seleccionada in nombres_jornadas.values():
+            jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
+        
+        jugador_selector = None  # Inicializar
+
+        #Seleccion de jugador
         jugadores_disponibles = df_maestro['Jugador'].unique()
         jugador_selector = st.selectbox('Selecciona un jugador:', jugadores_disponibles, key='jugador_selector')
-        jornadas_disponibles = df['Jornada'].unique()
-        jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
+        ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
+        if jugador_selector:
+            # Continua con los graficos por jugador
+            pantalla_graficos, pantalla_botones, pantalla_detalles = st.columns([3, 2, 4])
+            with pantalla_graficos:
+                mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
+            with pantalla_botones:
+                # Segmentar por jornada seleccionada
+                fig = generar_histograma_ofensivo(df, jugador_selector)
+                st.plotly_chart(fig, use_container_width=True)
+                
     with imagenes:
-        ruta_imagen = f"Imagenes/Jugadores/{jugador_selector}.png"
-        
+        ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
         # Verificamos si el archivo existe antes de intentar mostrarlo
-        if os.path.exists(ruta_imagen):
-            st.image(ruta_imagen, width=175)
+        if os.path.exists(ruta_imagen_oponente):
+            st.image(ruta_imagen_oponente, width=90)
         else:
-            st.markdown(f"No se encontró la imagen para {jugador_selector}")
+            st.markdown(f"No se encontró la imagen del oponente para {jornada}")
+        if jugador_selector:
+            if os.path.exists(ruta_imagen_jugador):
+                st.image(ruta_imagen_jugador, width=90)
+            else:
+                st.markdown(f"No se encontró la imagen para {jugador_selector}")
+            
 
-    pantalla_graficos, pantalla_botones, pantalla_detalles = st.columns([4, 2, 3])
 
-    with pantalla_graficos:
-        jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
-        mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
 
 if __name__ == "__main__":
     main()
