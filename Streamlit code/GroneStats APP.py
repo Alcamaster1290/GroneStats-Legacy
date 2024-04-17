@@ -166,11 +166,11 @@ def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_
     pitch.draw(ax=ax)
 
     for jugador in jugadores_disponibles:
-        fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador) & (df_posiciones_medias['Jornada'] == nombre_jornada)]
+        fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador) & (df_posiciones_medias['Jornada'] == nombre_jornada) ]
         if not fila_jugador.empty:
             pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
             ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
-                
+            ax.set_title(f"Posicion media de los jugadores", fontsize=14)
     plt.tight_layout()
     st.pyplot(fig)
 
@@ -276,14 +276,19 @@ def main():
             jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
             nombre_jornada = [value for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
             df = df[(df['Jornada'] == nombre_jornada) & (df['minutesPlayed'] > 0)]
-
+            df_titulares = df[df['substitute'] == False]
+            nombres_titulares = df_titulares['name'].unique()
             nombres_jugadores_disponibles = df['name'].unique()
+            nombres_jugadores_disponibles = nombres_jugadores_disponibles.tolist()
+            nombres_jugadores_disponibles = sorted(nombres_jugadores_disponibles, key=lambda x: df[df['name'] == x]['minutesPlayed'].values[0],reverse=True)
             jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
             ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
             if jugador_selector:
                 pantalla_heatmap , pantalla_datos, pantalla_otros = st.columns([2,3,1])
                 with pantalla_heatmap:
                     mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
+                with pantalla_datos:
+                    mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias)
 
     with imagenes:
         ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
