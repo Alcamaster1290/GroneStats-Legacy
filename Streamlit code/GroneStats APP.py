@@ -10,16 +10,18 @@ import os
 # LOCAL VARIABLES
 
 nombres_jornadas = {
-        "J1": "Jornada 1 - Local vs Universidad Cesar Vallejo",
-        "J2": "Jornada 2 - Visita vs Alianza Atlético de Sullana",
-        "J3": "Jornada 3 - Local vs Universitario de Deportes",
-        "J4": "Jornada 4 - Visita vs Unión Comercio",
-        "J5": "Jornada 5 - Local vs Comerciantes Unidos",
-        "J6": "Jornada 6 - Visita vs ADT",
-        "J7": "Jornada 7 - Local vs Sporting Cristal",
-        "J8": "Jornada 8 - Visita vs Cienciano",
-        "J9": "Jornada 9 - Local vs Los Chankas",
-        "C1": "Jornada 1 Copa Libertadores - Local vs Fluminense",
+    "J1": "Apertura - J1 - Local vs Universidad Cesar Vallejo",
+    "J2": "Apertura - J2 - Visita vs Alianza Atlético de Sullana",
+    "J3": "Apertura - J3 - Local vs Universitario de Deportes",
+    "J4": "Apertura - J4 - Visita vs Unión Comercio",
+    "J5": "Apertura - J5 - Local vs Comerciantes Unidos",
+    "J6": "Apertura - J6 - Visita vs ADT",
+    "J7": "Apertura - J7 - Local vs Sporting Cristal",
+    "J8": "Apertura - J8 - Visita vs Cienciano",
+    "J9": "Apertura - J9 - Local vs Los Chankas",
+    #"J10": "Apertura - J10 - Visita vs Carlos Manucci",
+    "C1": "Copa Libertadores - J1 - Local vs Fluminense", 
+    #"C2": "Copa Libertadores - J2 - Visita vs Cerro Porteño"
 }
 
 # GRAPH FUNCTIONS
@@ -158,6 +160,20 @@ def mostrar_heatmap_pos_media(jugador,nombre_jornada,df_posiciones_medias,df_hea
     plt.tight_layout()
     st.pyplot(fig)
 
+def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_medias):
+    fig, ax = plt.subplots(figsize=(10, 7))
+    pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+    pitch.draw(ax=ax)
+
+    for jugador in jugadores_disponibles:
+        fila_jugador = df_posiciones_medias[(df_posiciones_medias['name'] == jugador) & (df_posiciones_medias['Jornada'] == nombre_jornada)]
+        if not fila_jugador.empty:
+            pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
+            ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
+                
+    plt.tight_layout()
+    st.pyplot(fig)
+
 def generar_histograma_ofensivo(datos_jugador, nombre_jornada):
     
     datos_filtrados = datos_jugador[datos_jugador['Jornada'] == nombre_jornada]
@@ -221,7 +237,7 @@ def cargar_general():
 @st.cache_data
 def cargar_datos_jugadores():
     # Carga de datos de los jugadores y estadísticas de pases
-    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/XLSX finales/Resumen_AL_Jugadores.xlsx')
+    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/Archivos para el tablero final/Resumen_AL_Jugadores.xlsx')
     return df
 
 def cargar_datos_mapas(df_maestro):
@@ -240,7 +256,7 @@ def cargar_datos_mapas(df_maestro):
 
 def main():
     configurar_pagina()
-    df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
+    #df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
     df_posiciones_medias, df_heatmaps = cargar_datos_mapas(df_maestro) # Se cargan los datos de las posiciones medias y mapa de calor
     titulo, alianza = st.columns([2,1])
@@ -254,26 +270,21 @@ def main():
         #Seleccion de jornada
         jornadas_disponibles = [value for key, value in nombres_jornadas.items()]
         jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
-        
         if jornada_seleccionada in nombres_jornadas.values():
+            df = None
+            df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
             jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
-        
-        jugador_selector = None  # Inicializar
+            nombre_jornada = [value for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
+            df = df[(df['Jornada'] == nombre_jornada) & (df['minutesPlayed'] > 0)]
 
-        #Seleccion de jugador
-        jugadores_disponibles = df_maestro['Jugador'].unique()
-        jugador_selector = st.selectbox('Selecciona un jugador:', jugadores_disponibles, key='jugador_selector')
-        ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
-        if jugador_selector:
-            # Continua con los graficos por jugador
-            pantalla_graficos, pantalla_botones, pantalla_detalles = st.columns([3, 2, 4])
-            with pantalla_graficos:
-                mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
-            with pantalla_botones:
-                # Segmentar por jornada seleccionada
-                fig = generar_histograma_ofensivo(df, jugador_selector)
-                st.plotly_chart(fig, use_container_width=True)
-                
+            nombres_jugadores_disponibles = df['name'].unique()
+            jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
+            ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
+            if jugador_selector:
+                pantalla_heatmap , pantalla_datos, pantalla_otros = st.columns([2,3,1])
+                with pantalla_heatmap:
+                    mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
+
     with imagenes:
         ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
         # Verificamos si el archivo existe antes de intentar mostrarlo
@@ -282,11 +293,10 @@ def main():
         else:
             st.markdown(f"No se encontró la imagen del oponente para {jornada}")
         if jugador_selector:
-            if os.path.exists(ruta_imagen_jugador):
-                st.image(ruta_imagen_jugador, width=90)
-            else:
-                st.markdown(f"No se encontró la imagen para {jugador_selector}")
-            
+                if os.path.exists(ruta_imagen_jugador):
+                    st.image(ruta_imagen_jugador, width=90)
+                else:
+                    st.markdown(f"No se encontró la imagen para {jugador_selector}")
 
 
 
