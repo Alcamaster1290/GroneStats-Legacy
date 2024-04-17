@@ -1,0 +1,7 @@
+keyPass: Un pase que directamente termina en un tiro de un compañero de equipo (ocurrencia frecuente) o un pase que crea una oportunidad para que otro compañero realice una asistencia de gol (ocurrencia rara)
+bigChanceCreated: Un pase que conduce a una oportunidad clara de gol, como un 1 v 1 o un disparo a pocos metros del arco.
+touches: Suma total de eventos de un jugador (pases, regates, tiros, o cualquier otra accion relacionada con el balón)
+highClaim: Centros interceptados atrapados
+punches: Centros interceptados con puños
+penaltyWon: Penales generados, falta recibida dentro del área (no incluye mano).
+errorLeadToAShot: Cualquier error del jugador que directamente lleve a un gol o tiro del oponente.
