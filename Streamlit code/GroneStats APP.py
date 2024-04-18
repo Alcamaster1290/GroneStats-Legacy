@@ -170,48 +170,9 @@ def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_
         if not fila_jugador.empty:
             pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
             ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
-            ax.set_title(f"Posicion media de los jugadores", fontsize=14)
+            ax.set_title(f"{nombre_jornada} - Posicion promedio del 11 titular", fontsize=14)
     plt.tight_layout()
     st.pyplot(fig)
-
-def generar_histograma_ofensivo(datos_jugador, nombre_jornada):
-    
-    datos_filtrados = datos_jugador[datos_jugador['Jornada'] == nombre_jornada]
-    
-    estadisticas_ofensivas = ['Contiendas Ganadas', 'Total de Contiendas', 'Tiros Fuera','Intentos de Anotacion Bloqueados', 
-                                  'Intentos de Anotacion al Arco', 
-                                  'Balones al Poste']
-    e_o = ['Regates Ganados','Regates Intentados','Tiros Fuera','Tiros Bloqueados',
-                        'Tiros al Arco', 'Balones al Poste']
-    e_o_colors = ['green','blue','red','green','blue','blue']
-
-    datos_acumulados = datos_filtrados[estadisticas_ofensivas].sum()
-    # Crear el histograma con Plotly Graph Objects
-    fig = go.Figure(data=[
-        go.Bar(
-            x=e_o,
-            y=datos_acumulados.values,
-            marker=dict(color=e_o_colors)
-        )
-    ])
-    jugador_nombre = datos_filtrados.iloc[0]['Jugador'] if not datos_filtrados.empty else "Jugador desconocido"
-    # Actualizar el diseño del gráfico
-    fig.update_layout(
-        title=f"Acciones Ofensivas de<br>{jugador_nombre}",
-        xaxis_title="Estadística ofensiva",
-        xaxis=dict(
-            tickangle=-45
-        ),
-        yaxis=dict(
-            title="Cantidad total",
-            tickmode='array',
-            tickvals=list(range(int(min(datos_acumulados.values)), int(max(datos_acumulados.values)) + 1)),
-        ),
-        template='plotly_dark',
-        height=350,
-    )
-    # Devuelve la figura en plotly
-    return fig
 
 # MATH FUNCTIONS
 
@@ -254,9 +215,10 @@ def cargar_datos_mapas(df_maestro):
             st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
     return df_posiciones_medias_total.sort_values(by='position'), heatmaps_total
 
+
 def main():
     configurar_pagina()
-    #df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
+    #df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx (MEJOR DESPUES AUNQUE MAS INEFICIENTE)
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
     df_posiciones_medias, df_heatmaps = cargar_datos_mapas(df_maestro) # Se cargan los datos de las posiciones medias y mapa de calor
     titulo, alianza = st.columns([2,1])
@@ -284,11 +246,15 @@ def main():
             jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
             ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
             if jugador_selector:
-                pantalla_heatmap , pantalla_datos, pantalla_otros = st.columns([2,3,1])
-                with pantalla_heatmap:
-                    mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
-                with pantalla_datos:
+                pantalla_equipo , pantalla_heatmap, pantalla_otros = st.columns([2,3,1])
+                with pantalla_equipo:
+                    st.subheader('Información del equipo')
                     mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias)
+                with pantalla_heatmap:
+                    st.subheader('Información del jugador')
+                    st.subheader('Mapa de calor y posición promedio')
+                    mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
+                    
 
     with imagenes:
         ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
