@@ -59,7 +59,7 @@ def radar_chart(data, selected_metrics, jugador, jornada_seleccionada, ranges):
     )
     endnote = 'Soccerplots - Data via Sofascore'
 
-    radar = Radar(background_color="#121212", patch_color="#28252C", label_color="#FFFFFF",
+    radar = Radar(background_color="#C0C0C0", patch_color="#28252C", label_color="#FFFFFF",
               range_color="#000000",fontfamily="Times New Roman")
     fig,ax = radar.plot_radar(ranges=ranges,params=selected_metrics,values=data
                               ,title=title,endnote=endnote, radar_color=['#192745', '#C0C0C0'])
