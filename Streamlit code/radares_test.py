@@ -38,32 +38,31 @@ def cargar_datos_jugadores():
     df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/Archivos para el tablero final/Resumen_AL_Jugadores.xlsx')
     return df
 
-def radar_chart(data, selected_metrics):
+def obtener_rangos(datos_jugadores, selected_metrics, jornada_seleccionada):
+    # Filtrar los datos de los jugadores para la jornada seleccionada y substitute sea False
+    datos_jugadores_jornada = datos_jugadores[datos_jugadores['Jornada'] == jornada_seleccionada]
+    datos_jugadores_jornada = datos_jugadores_jornada[datos_jugadores_jornada['substitute'] == False]
+    # Obtiene el maximo y minimo valor de las jornadas seleccionadas
+    ranges = [(datos_jugadores_jornada[metric].min(), datos_jugadores_jornada[metric].max()) for metric in selected_metrics]
+    return ranges
 
-    player_data = data
-    ranges = []
-    values = []
-    for metric in selected_metrics:
-        metric_data = player_data[metric]
-        min_val = metric_data.min()
-        max_val = metric_data.max()
-
-        # Calcular el rango como el valor mínimo/máximo de la métrica menos/más el 10%
-        ranges.append((min_val * 0.9, max_val * 1.1))
-        # Agregar el valor de la métrica para el jugador a los valores
-        values.append(metric_data)
-
+def radar_chart(data, selected_metrics, jugador, jornada_seleccionada, ranges):
+    # obtener solo los valores de data
+    data = data.values.tolist()[0]
     title = dict(
-        title_name= "Radar de acciones",
-        title_color = 'blue',
+        title_name= f'Radar de acciones - {jugador}',
+        subtitle_name = f'{jornada_seleccionada}',
+        title_color = '#192745',
         title_fontsize = 18,
+        subtitle_fontsize = 10,
+        subtitle_color = 'black',
     )
     endnote = 'Soccerplots - Data via Sofascore'
 
-    radar = Radar(fontfamily="Arial")
-    fig,ax = radar.plot_radar(ranges=ranges,params=selected_metrics,values=values,
-                    alphas=[.75,.6],title=title,endnote=endnote, radar_color=['#B6282F', '#FFFFFF'])
-    ax.set_title(f'Radar Chart - {selected_metrics}', fontsize=14, weight='bold', color='black', loc='center')
+    radar = Radar(background_color="#121212", patch_color="#28252C", label_color="#FFFFFF",
+              range_color="#FFFFFF",fontfamily="Times New Roman")
+    fig,ax = radar.plot_radar(ranges=ranges,params=selected_metrics,values=data
+                              ,title=title,endnote=endnote, radar_color=['#192745', '#C0C0C0'])
     ax.grid(True)
     st.pyplot(fig)
 
@@ -77,7 +76,8 @@ def main():
     
     datos_jugadores = cargar_datos_jugadores()
     filtered_df = pd.merge(filtered_df, datos_jugadores, right_on='name', left_on='Jugador', how='left')
-    filtered_df = filtered_df.drop(columns=['name', 'shortName', 'position', 'jerseyNumber', 'country'])
+    filtered_df = filtered_df.drop(columns=['name', 'shortName', 'position', 'jerseyNumber', 'country','captain',
+                                            'goalsPrevented','expectedAssists','expectedGoals','rating'])
     
     # Mostrar selector de Jornada
     jornadas = filtered_df['Jornada'].unique().tolist()
@@ -85,14 +85,14 @@ def main():
     filtered_df = filtered_df[filtered_df['Jornada'] == jornada_seleccionada]
 
     # Mostrar selector de Columna
-    metrics_list = list(filtered_df.columns)[1:]
+    metrics_list = list(filtered_df.select_dtypes(include=np.number).columns)
     selected_metrics = st.multiselect(
                 'Choose The Metrics',metrics_list)
     
     if st.button('Generar Radar Chart'):
         filtered_df = filtered_df[selected_metrics]
-        st.table(filtered_df)
-        #radar_chart(filtered_df, selected_metrics, jornada_seleccionada,)
+        ranges = obtener_rangos(datos_jugadores, selected_metrics, jornada_seleccionada)
+        radar_chart(filtered_df, selected_metrics, jugador, jornada_seleccionada, ranges)
 
 
 
