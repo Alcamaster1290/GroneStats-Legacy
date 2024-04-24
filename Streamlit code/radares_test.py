@@ -38,26 +38,26 @@ def cargar_datos_jugadores():
     df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/Archivos para el tablero final/Resumen_AL_Jugadores.xlsx')
     return df
 
-def obtener_rangos(datos_jugadores, selected_metrics, jornada_seleccionada):
-    # Filtrar los datos de los jugadores para la jornada seleccionada y substitute sea False
-    datos_jugadores_jornada = datos_jugadores[datos_jugadores['Jornada'] == jornada_seleccionada]
-    datos_jugadores_jornada = datos_jugadores_jornada[datos_jugadores_jornada['substitute'] == False]
+def obtener_rangos(datos_jugadores, selected_metrics, jugador):
+    # Obtiene el maximo y minimo valor para las metricas seleccionadas para el jugador seleccionado a lo largo de las jornadas que haya jugado mas de 20 minutos
+    datos_jugador_total = datos_jugadores[datos_jugadores['name'] == jugador]
+    datos_jugador_total = datos_jugador_total[datos_jugador_total['minutesPlayed'] > 20] # Solo los partidos con mas de 20 minutos
     # Obtiene el maximo y minimo valor de las jornadas seleccionadas
-    ranges = [(datos_jugadores_jornada[metric].min(), datos_jugadores_jornada[metric].max()) for metric in selected_metrics]
+    ranges = [(datos_jugador_total[metric].min(), datos_jugador_total[metric].max()) for metric in selected_metrics]
     return ranges
 
-def radar_chart(data, selected_metrics, jugador, jornada_seleccionada, ranges):
+def radar_chart(data, selected_metrics, jugador, jornada_seleccionada, ranges, minutesPlayed):
     # obtener solo los valores de data
     data = data.values.tolist()[0]
     title = dict(
-        title_name= f'Radar de acciones - {jugador}',
-        subtitle_name = f'{jornada_seleccionada}',
+        title_name= f'Radar de acciones - {jugador}\n',
+        subtitle_name = f'{jornada_seleccionada} \nMinutos jugados: {minutesPlayed}',
         title_color = '#192745',
         title_fontsize = 18,
         subtitle_fontsize = 10,
         subtitle_color = 'black',
     )
-    endnote = 'Soccerplots - Data via Sofascore'
+    endnote = 'Alianza Lima - Data via Sofascore'
 
     radar = Radar(background_color="#C0C0C0", patch_color="#28252C", label_color="#FFFFFF",
               range_color="#000000",fontfamily="Times New Roman")
@@ -86,13 +86,17 @@ def main():
 
     # Mostrar selector de Columna
     metrics_list = list(filtered_df.select_dtypes(include=np.number).columns)
+    # eliminar 'minutesPlayed' de metrics_list si está presente
+    if 'minutesPlayed' in metrics_list:
+        metrics_list.pop(metrics_list.index('minutesPlayed'))
+        minutos_jugados = filtered_df['minutesPlayed'].values[0]
     selected_metrics = st.multiselect(
                 'Choose The Metrics',metrics_list)
     
     if st.button('Generar Radar Chart'):
         filtered_df = filtered_df[selected_metrics]
-        ranges = obtener_rangos(datos_jugadores, selected_metrics, jornada_seleccionada)
-        radar_chart(filtered_df, selected_metrics, jugador, jornada_seleccionada, ranges)
+        ranges = obtener_rangos(datos_jugadores, selected_metrics, jugador)
+        radar_chart(filtered_df, selected_metrics, jugador, jornada_seleccionada, ranges, minutos_jugados)
 
 
 
