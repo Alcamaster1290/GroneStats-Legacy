@@ -160,7 +160,7 @@ def mostrar_heatmap_pos_media(jugador,nombre_jornada,df_posiciones_medias,df_hea
     plt.tight_layout()
     st.pyplot(fig)
 
-def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_medias):
+def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_medias, df_posiciones_medias_oponentes):
     fig, ax = plt.subplots(figsize=(10, 7))
     pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
     pitch.draw(ax=ax)
@@ -170,7 +170,12 @@ def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_
         if not fila_jugador.empty:
             pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color='blue', edgecolors='black', linewidth=2.5, zorder=1)
             ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
-            ax.set_title(f"{nombre_jornada} - Posicion promedio del 11 titular", fontsize=14)
+            ax.set_title(f"Posicion promedio del 11 titular de ambos equipos", fontsize=14)
+            # Mostrar las posiciones medias de todos los oponentes
+    for index, fila_oponente in df_posiciones_medias_oponentes.iterrows():
+        pitch.scatter(100 - fila_oponente['averageX'], 100 - fila_oponente['averageY'], ax=ax, s=200, color='red', edgecolors='black', linewidth=2.5, zorder=1)
+        ax.text(100 - fila_oponente['averageY'], 100 - fila_oponente['averageX'], fila_oponente['jerseyNumber'], color='white', ha='center', va='center', fontsize=12, zorder=2)
+                
     plt.tight_layout()
     st.pyplot(fig)
 
@@ -215,12 +220,35 @@ def cargar_datos_mapas(df_maestro):
             st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
     return df_posiciones_medias_total.sort_values(by='position'), heatmaps_total
 
+def cargar_datos_oponentes():
+    df_oponentes = pd.DataFrame()
+    for jornada, nombre_jornada in nombres_jornadas.items():
+        try:
+            df_temp = pd.read_csv(f'Archivos para el tablero final/{jornada}_stats_jugadores_op.csv')
+            df_temp['Jornada'] = jornada
+            df_oponentes = pd.concat([df_oponentes, df_temp])
+        except FileNotFoundError as e:
+            st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
+    return df_oponentes
+
+def cargar_datos_medias_oponentes():
+    df_posiciones_medias_oponentes = pd.DataFrame()
+    for jornada, nombre_jornada in nombres_jornadas.items():
+        try:
+            df_temp = pd.read_csv(f'Archivos para el tablero final/{jornada}_AL_posicionesprom_op.csv')
+            df_temp['Jornada'] = jornada
+            df_posiciones_medias_oponentes = pd.concat([df_posiciones_medias_oponentes, df_temp])
+        except FileNotFoundError as e:
+            st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
+    return df_posiciones_medias_oponentes
 
 def main():
     configurar_pagina()
     #df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx (MEJOR DESPUES AUNQUE MAS INEFICIENTE)
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
     df_posiciones_medias, df_heatmaps = cargar_datos_mapas(df_maestro) # Se cargan los datos de las posiciones medias y mapa de calor
+    df_posiciones_medias_oponentes = cargar_datos_medias_oponentes() # Se cargan los datos de las posiciones medias de los oponentes
+    df_datos_oponentes = cargar_datos_oponentes() #Se cargan los datos de los oponentes de cada jornada 
     titulo, alianza = st.columns([2,1])
     with titulo:
         st.title('Alianza Lima Temporada 2024')
@@ -248,13 +276,22 @@ def main():
             if jugador_selector:
                 pantalla_equipo , pantalla_heatmap, pantalla_otros = st.columns([2,3,1])
                 with pantalla_equipo:
-                    st.subheader('Información del equipo')
-                    mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias)
+                    st.subheader('Información del partido')
+                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['Jornada'] == jornada]
+                    df_datos_oponentes = df_datos_oponentes[df_datos_oponentes['Jornada'] == jornada]
+                    #Eliminar columna 'jerseyNumber' de df_datos_oponentes
+                    df_datos_oponentes = df_datos_oponentes.drop(columns='jerseyNumber')
+                    #Hacer join de df_posiciones_medias_oponentes con df_datos_oponentes por la columna 'shortName'
+                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes.merge(df_datos_oponentes, left_on='shortName', right_on='shortName', how='left')
+                    #Filtrar a los jugadores titulares
+                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['substitute'] == False]
+                    mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias, df_posiciones_medias_oponentes)
                 with pantalla_heatmap:
                     st.subheader('Información del jugador')
                     st.subheader('Mapa de calor y posición promedio')
                     mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
-                    
+                with pantalla_otros:
+                    st.subheader('Radares de rendimiento')
 
     with imagenes:
         ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
