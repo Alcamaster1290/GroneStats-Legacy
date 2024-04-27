@@ -159,6 +159,15 @@ stats_defensores = {
     "outfielderBlock": "Bloqueos con el cuerpo",
 }
 
+stats_porteros = {
+    "punches": "Salidas con puños",
+    "goodHighClaim": "Centros atrapados",
+    "accurateKeeperSweeper": "Salidas del área con éxito",
+    "totalKeeperSweeper": "Salidas del área",
+    "savedShotsFromInsideTheBox": "Salvadas dentro del área",
+    "saves": "Salvadas"
+}
+
 # GRAPH FUNCTIONS
 
 def obtener_grafico_match_momentum( df, es_local = True):
@@ -427,6 +436,76 @@ def obtener_stats_concentracion(df_rendimiento):
         st.write(f"<div style='text-align: center;'>{row['Estadística']}: {row['Valor']}</div>", unsafe_allow_html=True)
     return df_stats_c
 
+def completar_datos(df_stats, df_jugador , lista_radares):
+    # Agregar al dataframe df_stats, las estadisticas que se encuentran en la lista_radares
+    # Agrega una columna a df_stats llamada 'Pos' que indique de qué diccionario se extrajo la stat
+    df_stats['Pos'] = 'B'
+    # Filtrar df_jugador segun la letra de la posicion de lista_radares
+    for pos in lista_radares:
+        if pos == 'G':
+            # Filtra df_jugador con las columnas que esten en el diccionario stats_porteros
+            df_filtrado = df_jugador[stats_porteros.keys()]
+            # Pasa las columnas a formato largo
+            df_filtrado = df_filtrado.melt(var_name='Estadística', value_name='Valor')
+            # Traduce las columnas a los valores del diccionario stats_porteros
+            df_filtrado['Estadística'] = df_filtrado['Estadística'].map(stats_porteros)
+            # Pasa los valores a enteros
+            df_filtrado['Valor'] = df_filtrado['Valor'].astype(int)
+            # Agrega las filas a df_stats
+            df_stats = pd.concat([df_stats, df_filtrado])
+            # Ordena df_stats por indice
+            df_stats = df_stats.sort_index()
+            # Llenar columna 'Pos' con 'G'
+            df_stats.loc[df_stats['Pos'].isnull(), 'Pos'] = 'G'
+        elif pos == 'D':
+            # Filtra df_jugador con las columnas que esten en el diccionario stats_porteros
+            df_filtrado = df_jugador[stats_defensores.keys()]
+            # Pasa las columnas a formato largo
+            df_filtrado = df_filtrado.melt(var_name='Estadística', value_name='Valor')
+            # Traduce las columnas a los valores del diccionario stats_porteros
+            df_filtrado['Estadística'] = df_filtrado['Estadística'].map(stats_defensores)
+            # Pasa los valores a enteros
+            df_filtrado['Valor'] = df_filtrado['Valor'].astype(int)
+            # Agrega las filas a df_stats
+            df_stats = pd.concat([df_stats, df_filtrado])
+            # Ordena df_stats por indice
+            df_stats = df_stats.sort_index()
+            # Llenar columna 'Pos' con 'D'
+            df_stats.loc[df_stats['Pos'].isnull(), 'Pos'] = 'D'
+        elif pos == 'M':
+            # Filtra df_jugador con las columnas que esten en el diccionario stats_mediocentros
+            df_filtrado = df_jugador[stats_mediocentros.keys()]
+            # Pasa las columnas a formato largo
+            df_filtrado = df_filtrado.melt(var_name='Estadística', value_name='Valor')
+            # Traduce las columnas a los valores del diccionario stats_mediocentros
+            df_filtrado['Estadística'] = df_filtrado['Estadística'].map(stats_mediocentros)
+            # Pasa los valores a enteros
+            df_filtrado['Valor'] = df_filtrado['Valor'].astype(int)
+            # Agrega las filas a df_stats
+            df_stats = pd.concat([df_stats, df_filtrado])
+            # Ordena df_stats por indice
+            df_stats = df_stats.sort_index()
+            # Llenar columna 'Pos' con 'M'
+            df_stats.loc[df_stats['Pos'].isnull(), 'Pos'] = 'M'
+        elif pos == 'F':
+           # Filtra df_jugador con las columnas que esten en el diccionario stats_delanteros
+            df_filtrado = df_jugador[stats_delanteros.keys()]
+            # Pasa las columnas a formato largo
+            df_filtrado = df_filtrado.melt(var_name='Estadística', value_name='Valor')
+            # Traduce las columnas a los valores del diccionario stats_delanteros
+            df_filtrado['Estadística'] = df_filtrado['Estadística'].map(stats_delanteros)
+            # Pasa los valores a enteros
+            df_filtrado['Valor'] = df_filtrado['Valor'].astype(int)
+            # Agrega las filas a df_stats
+            df_stats = pd.concat([df_stats, df_filtrado])
+            # Ordena df_stats por indice
+            df_stats = df_stats.sort_index()
+            # Llenar columna 'Pos' con 'F'
+            df_stats.loc[df_stats['Pos'].isnull(), 'Pos'] = 'F'
+            
+    # Ordenar df_stats por 'Pos'
+    df_stats = df_stats.sort_values(by='Pos')
+    return df_stats
 
 # MATH FUNCTIONS
 
@@ -556,14 +635,16 @@ def main():
                         df_rendimiento = obtener_rendimiento(posiciones_jugador_seleccionado,df_jugador)
                         df_stats_base , df_ratios_base = obtener_stats_base(df_rendimiento)
                         df_concentracion = obtener_stats_concentracion(df_rendimiento)
+                        # A df_concentracion se le tienen que agregar las Tarjetas Amarillas y Rojas (pendiente)
+                        lista_posiciones = posiciones_jugador_seleccionado[2]
+                        lista_radares = posiciones_jugador_seleccionado[3]
+                        df_stats_posicion = completar_datos(df_stats_base, df_rendimiento , lista_radares)
                         st.subheader('Ratios del jugador')
                         st.table(df_ratios_base)
                         with pantalla_heatmap:
                             st.subheader('Estadísticas de posición')
-                            lista_posiciones = posiciones_jugador_seleccionado[2]
-                            lista_radares = posiciones_jugador_seleccionado[3]
                             st.write(f"{', '.join(lista_posiciones)}")
-                            st.table(df_stats_base)
+                            st.table(df_stats_posicion)
 
         with imagenes:
             ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
