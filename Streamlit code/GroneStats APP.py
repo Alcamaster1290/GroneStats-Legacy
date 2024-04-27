@@ -20,13 +20,148 @@ nombres_jornadas = {
     "J8": "Apertura - J8 - Visita vs Cienciano",
     "J9": "Apertura - J9 - Local vs Los Chankas",
     #"J10": "Apertura - J10 - Visita vs Carlos Manucci",
+    #"J11": "Apertura - J11 - Local vs Atletico Grau",
+    #"J12": "Apertura - J12 - Local vs Sport Boys",
+    #"J13": "Apertura - J13 - Visita vs Melgar",
+    #"J14": "Apertura - J14 - Local vs UTC",
     "C1": "Copa Libertadores - J1 - Local vs Fluminense", 
-    #"C2": "Copa Libertadores - J2 - Visita vs Cerro Porteño"
+    #"C2": "Copa Libertadores - J2 - Visita vs Cerro Porteño",
+    #"C3": "Copa Libertadores - J3 - Visita vs Colo Colo"
+}
+
+posiciones_map = {
+    'G': 'Portero',
+    'D': 'Defensa',
+    'M': 'Mediocampista',
+    'F': 'Delantero'
+}
+
+nombres_pos_map = {
+    # Portero
+    'POR': 'Portero',
+    # Defensa
+    'DFI': 'Defensa izquierdo',
+    'DFD': 'Defensa derecho',
+    'DFC': 'Defensa central',
+    'LIB': 'Defensa libero',
+    'LD': 'Lateral derecho',
+    'LI': 'Lateral izquierdo',
+    'CRI': 'Carrilero izquierdo',
+    'CRD': 'Carrilero derecho',
+    # Mediocampista
+    'MCD': 'Mediocampista central def.',
+    'MCC': 'Mediocampista contencion',
+    'VLX': 'Volante mixto',
+    'VLD': 'Volante derecho',
+    'VLI': 'Volante izquierdo',
+    'MCO': 'Mediocampista enganche',
+    # Delantero
+    'EXI': 'Extremo izquierdo',
+    'EXD': 'Extremo derecho',
+    'SDC': 'Segundo delantero centro',
+    'DLC': 'Delantero centro'
+}
+
+Pos_Prim_Map = {
+    'POR': 'G',
+    'DFI': 'D',
+    'DFD': 'D',
+    'DFC': 'D',
+    'LIB': 'D',
+    'LD': 'D',
+    'LI': 'D',
+    'CRI': 'D',
+    'CRD': 'D',
+    'MCD': 'D',
+    'MCC': 'M',
+    'VLX': 'M',
+    'VLD': 'M',
+    'VLI': 'M',
+    'MCO': 'M',
+    'EXI': 'F',
+    'EXD': 'F',
+    'SDC': 'F',
+    'DLC': 'F'
+}
+
+Pos_Secu_Map = {
+    'POR': '0',
+    'DFI': '0',
+    'DFD': '0',
+    'DFC': '0',
+    'LIB': '0',
+    'LD': 'M',
+    'LI': 'M',
+    'CRI': 'M',
+    'CRD': 'M',
+    'MCD': 'M',
+    'MCC': 'D',
+    'VLX': '0',
+    'VLD': '0',
+    'VLI': '0',
+    'MCO': 'F',
+    'EXI': 'M',
+    'EXD': 'M',
+    'SDC': '0',
+    'DLC': '0'
+}
+
+stats_base = {
+    "substitute": "Suplente",
+    "minutesPlayed": "Minutos jugados",
+    "goals": "Goles",
+    "goalAssist": "Asistencias",
+    "bigChanceCreated": "Gran chance de gol creada",
+    "bigChanceMissed": "Gran chance de gol fallada",
+    "accuratePass": "Pases precisos",
+    "totalPass": "Pases intentados",
+    "accurateLongBalls": "Pases largos precisos",
+    "totalLongBalls": "Pases largos intentados",
+    "possessionLostCtrl": "Posesión controlada perdida",
+    "touches": "Toques de balón",
+    "aerialWon": "Duelos Aereos ganados",
+    "aerialLost": "Duelos Aereos perdidos",
+    "duelWon": "Duelos ganados",
+    "duelLost": "Duelos perdidos",
+    "penaltyWon": "Penal ganado",
+    "penaltyMiss": "Penal fallado",    
+}
+
+stats_concentracion = {
+    "fouls": "Faltas",
+    "wasFouled": "Recibió falta",
+    "totalOffside": "Fuera de juego",
+    "dispossessed": "Desposesiones",
+    "errorLeadToAShot": "Error que lleva a tiro",
+    "penaltyConceded": "Penal concedido"
+}
+
+stats_delanteros = {
+    "onTargetScoringAttempt": "Tiro al arco",
+    "shotOffTarget": "Tiros fuera",
+    "blockedScoringAttempt": "Tiro bloqueado",
+    "hitWoodwork": "Tiro al poste",
+}
+
+stats_mediocentros = {
+    "keyPass": "Pases clave",
+    "accurateCross": "Centros precisos",
+    "totalCross": "Centros totales",
+    "wonContest": "Regates con éxito",
+    "totalContest": "Regates totales",
+}
+
+stats_defensores = {
+    "totalTackle": "Entradas totales",
+    "totalClearance": "Despejes totales",
+    "challengeLost": "Desafios perdidos",
+    "interceptionWon": "Intercepciones ganadas",
+    "outfielderBlock": "Bloqueos con el cuerpo",
 }
 
 # GRAPH FUNCTIONS
 
-def obtener_grafico_match_momentum( nombre_jornada, es_local = True):
+def obtener_grafico_match_momentum( df, es_local = True):
     #df =  Obtener datos de un xlsx utilizando el nombre de la jornada
     # Procesar los datos para separar los valores positivos y negativos de momentum
     momentum_positivo = df[df['value'] > 0]
@@ -160,7 +295,14 @@ def mostrar_heatmap_pos_media(jugador,nombre_jornada,df_posiciones_medias,df_hea
     plt.tight_layout()
     st.pyplot(fig)
 
-def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_medias, df_posiciones_medias_oponentes):
+def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_medias, df_posiciones_medias_oponentes, df_datos_oponentes):
+    #Eliminar columna 'jerseyNumber' de df_datos_oponentes
+    df_datos_oponentes = df_datos_oponentes.drop(columns='jerseyNumber')
+    #Hacer join de df_posiciones_medias_oponentes con df_datos_oponentes por la columna 'shortName'
+    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes.merge(df_datos_oponentes, left_on='shortName', right_on='shortName', how='left')
+    #Filtrar a los jugadores titulares
+    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['substitute'] == False]
+    
     fig, ax = plt.subplots(figsize=(10, 7))
     pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
     pitch.draw(ax=ax)
@@ -178,6 +320,113 @@ def mostrar_pos_media_equipo(jugadores_disponibles,nombre_jornada,df_posiciones_
                 
     plt.tight_layout()
     st.pyplot(fig)
+
+def obtener_posiciones(df_jugador):
+    # Hace join para obtener unicamente las columnas POS_1, POS_2 y POS_3 de df_maestro
+    posiciones_jugador_seleccionado = df_jugador[['name','position','Pos_1', 'Pos_2', 'Pos_3']]
+    posiciones_jugador_seleccionado['position'] = posiciones_jugador_seleccionado['position'].map(posiciones_map)
+    # Haz un join con los diccionarios Pos_Prim_Map y Pos_Secu_Map
+    posiciones_jugador_seleccionado['P1'] = posiciones_jugador_seleccionado['Pos_1'].map(Pos_Prim_Map)
+    posiciones_jugador_seleccionado['P2'] = posiciones_jugador_seleccionado['Pos_2'].map(Pos_Prim_Map)
+    posiciones_jugador_seleccionado['P3'] = posiciones_jugador_seleccionado['Pos_3'].map(Pos_Prim_Map)
+    posiciones_jugador_seleccionado['S1'] = posiciones_jugador_seleccionado['Pos_1'].map(Pos_Secu_Map)
+    posiciones_jugador_seleccionado['S2'] = posiciones_jugador_seleccionado['Pos_2'].map(Pos_Secu_Map)
+    posiciones_jugador_seleccionado['S3'] = posiciones_jugador_seleccionado['Pos_3'].map(Pos_Secu_Map)
+
+    for col in ['Pos_1', 'Pos_2', 'Pos_3']:
+        posiciones_jugador_seleccionado[col] = posiciones_jugador_seleccionado[col].map(nombres_pos_map)
+
+    # Extraer las columnas relevantes para el cálculo
+    columnas_pos = posiciones_jugador_seleccionado[['Pos_1', 'Pos_2', 'Pos_3']]
+    columnas_radares = posiciones_jugador_seleccionado[['P1', 'P2', 'P3', 'S1', 'S2', 'S3']]
+
+    columnas_pos = columnas_pos.stack().reset_index(drop=True)
+    columnas_radares = columnas_radares.stack().reset_index(drop=True)
+    # eliminar duplicados y ceros
+    columnas_radares = columnas_radares.drop_duplicates().replace('0', np.nan).dropna()
+
+    columnas_radares = columnas_radares.tolist()
+    columnas_pos = columnas_pos.tolist()
+
+    return posiciones_jugador_seleccionado['name'].values[0],posiciones_jugador_seleccionado['position'].values[0], columnas_pos , columnas_radares 
+
+def obtener_rendimiento(posiciones_jugador_seleccionado,df):
+    # Obtenemos las posiciones en formato 'position' , Lista de variantes de posicion (max 3) , Lista de influencia (G,D,M,F)
+    # Hacer join de posiciones_jugador_seleccionado con df por la columna 'name'
+    posiciones_jugador_seleccionado = pd.DataFrame(posiciones_jugador_seleccionado).T
+    posiciones_jugador_seleccionado.columns = ['name','position','Posiciones','Radares']
+
+    # Agrupar df por 'name' y sumar las estadísticas
+    df_totales = df.groupby('name').sum().reset_index()
+
+    # Elimina columna 'position' y 'Jornada'
+    df_totales = df_totales.drop(columns=['position', 'Jornada','country','rating','captain'])
+
+    # Hacer join solo con los que coincidan
+    df_rendimiento = posiciones_jugador_seleccionado.merge(df_totales ,left_on='name', right_on='name', how='left')
+    
+    return df_rendimiento
+
+def obtener_stats_base(df_rendimiento):
+    # Extrae las columnas de df_rendimiento que estan en la primera columna del diccionario stats_base
+    df_stats_base = df_rendimiento[stats_base.keys()]
+    # Pasar df_stats_base a formato largo
+    df_stats_base = df_stats_base.melt(var_name='Estadística', value_name='Valor')
+    # Traduce utilizando los valores del diccionario stats_base
+    df_stats_base['Estadística'] = df_stats_base['Estadística'].map(stats_base)
+    # Pasa los valores a enteros
+    df_stats_base['Valor'] = df_stats_base['Valor'].astype(int)
+    # Extrae la primera fila y guardala en una variable 'suplente'
+    suplente = df_stats_base[df_stats_base['Estadística'] == 'Suplente']
+    # Elimina la fila 'suplente' de df_stats_base
+    df_stats_base = df_stats_base[df_stats_base['Estadística'] != 'Suplente']
+    # Variable suplente en caso columna Valor sea 0 imprimir: 'Titular' en Streamlit
+    suplente['Valor'] = suplente['Valor'].apply(lambda x: 'Titular' if x == 0 else 'Suplente')
+    st.subheader(f"Inicia: {suplente['Valor'].values[0]}")
+    # En caso los dos ultimos valores sean 0, eliminar ambas filas
+    if df_stats_base['Valor'].iloc[-2] == 0 and df_stats_base['Valor'].iloc[-1] == 0:
+        df_stats_base = df_stats_base.iloc[:-2]
+    # Separa el df en dos a partir del quinto elemento
+    df_stats_criticas = df_stats_base.iloc[:5]
+    df_stats_base = df_stats_base.iloc[5:]
+
+    # En caso los dos ultimos valores de df_stats_criticas sean 0, eliminar ambas filas
+    if df_stats_criticas['Valor'].iloc[-2] == 0 and df_stats_criticas['Valor'].iloc[-1] == 0:
+        df_stats_criticas = df_stats_criticas.iloc[:-2]
+    
+    # Imprimir en tarjetas de streamlit cada elemento de df_stats_criticas
+    for index, row in df_stats_criticas.iterrows():
+        st.write(f"<div style='text-align: center;'>{row['Estadística']}: {row['Valor']}</div>", unsafe_allow_html=True)
+    
+    df_ratios_base = pd.DataFrame(columns=['Ratio', 'Valor'])
+    # Calcular los ratios y agregarlos como nuevas filas
+    df_ratios_base.loc[0] = ['Ratio Pases precisos', df_stats_base.loc[6, 'Valor'] / df_stats_base.loc[7, 'Valor']]
+    df_ratios_base.loc[1] = ['Ratio Pases largos precisos', df_stats_base.loc[8, 'Valor'] / df_stats_base.loc[9, 'Valor']]
+    df_ratios_base.loc[2] = ['Ratio Toques por pérdida', df_stats_base.loc[11, 'Valor'] / df_stats_base.loc[10, 'Valor']]
+    df_ratios_base.loc[3] = ['Ratio Duelos ganados', (df_stats_base.loc[12, 'Valor']
+                                                        + df_stats_base.loc[14, 'Valor'] )  / 
+                                                        (df_stats_base.loc[13, 'Valor'] 
+                                                        + df_stats_base.loc[15, 'Valor'])]
+    # Redondear los valores a dos decimales
+    df_ratios_base['Valor'] = df_ratios_base['Valor'].round(2)
+    # Eliminar ratios vacios
+    df_ratios_base = df_ratios_base.dropna()
+    return df_stats_base, df_ratios_base
+
+def obtener_stats_concentracion(df_rendimiento):
+    st.subheader(f"Concentración y mentalidad")
+    # Extrae las columnas de df_rendimiento que estan en la primera columna del diccionario
+    df_stats_c = df_rendimiento[stats_concentracion.keys()]
+    df_stats_c = df_stats_c.melt(var_name='Estadística', value_name='Valor')
+    df_stats_c['Estadística'] = df_stats_c['Estadística'].map(stats_concentracion)
+    # Pasa los valores a enteros
+    df_stats_c['Valor'] = df_stats_c['Valor'].astype(int)
+    if df_stats_c['Valor'].iloc[-2] == 0 and df_stats_c['Valor'].iloc[-1] == 0:
+        df_stats_c = df_stats_c.iloc[:-2]
+    for index, row in df_stats_c.iterrows():
+        st.write(f"<div style='text-align: center;'>{row['Estadística']}: {row['Valor']}</div>", unsafe_allow_html=True)
+    return df_stats_c
+
 
 # MATH FUNCTIONS
 
@@ -242,70 +491,97 @@ def cargar_datos_medias_oponentes():
             st.error(f"No se encontró el archivo para {nombre_jornada}: {e}")
     return df_posiciones_medias_oponentes
 
+def seleccionar_jornada(jornadas_disponibles):
+    jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
+    if jornada_seleccionada in nombres_jornadas.values():
+        jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
+        nombre_jornada = [value for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
+        return jornada, nombre_jornada
+    return None, None
+
+def seleccionar_jugador(df):
+    nombres_jugadores_disponibles = df['name'].unique()
+    nombres_jugadores_disponibles = nombres_jugadores_disponibles.tolist()
+    nombres_jugadores_disponibles = sorted(nombres_jugadores_disponibles, key=lambda x: df[df['name'] == x]['minutesPlayed'].values[0],reverse=True)
+    jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
+    return jugador_selector
+
+
+
+
 def main():
     configurar_pagina()
     #df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx (MEJOR DESPUES AUNQUE MAS INEFICIENTE)
     df_maestro = cargar_general() # Se cargan los datos de ALIANZA LIMA 2024.xlsx
     df_posiciones_medias, df_heatmaps = cargar_datos_mapas(df_maestro) # Se cargan los datos de las posiciones medias y mapa de calor
-    df_posiciones_medias_oponentes = cargar_datos_medias_oponentes() # Se cargan los datos de las posiciones medias de los oponentes
-    df_datos_oponentes = cargar_datos_oponentes() #Se cargan los datos de los oponentes de cada jornada 
     titulo, alianza = st.columns([2,1])
     with titulo:
         st.title('Alianza Lima Temporada 2024')
     with alianza:
         st.image(f'Imagenes\AL.png', width=80)
-    selectores, imagenes =  st.columns([4,1])
+    
+    df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
+    df_posiciones_medias_oponentes = cargar_datos_medias_oponentes() # Se cargan los datos de las posiciones medias de los oponentes
+    df_datos_oponentes = cargar_datos_oponentes() #Se cargan los datos de los oponentes de cada jornada 
 
-    with selectores:
-        #Seleccion de jornada
-        jornadas_disponibles = [value for key, value in nombres_jornadas.items()]
-        jornada_seleccionada = st.selectbox('Selecciona una jornada:', jornadas_disponibles, key='jornada_selector')
-        if jornada_seleccionada in nombres_jornadas.values():
-            df = None
-            df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
-            jornada = [key for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
-            nombre_jornada = [value for key, value in nombres_jornadas.items() if value == jornada_seleccionada][0]
-            df = df[(df['Jornada'] == nombre_jornada) & (df['minutesPlayed'] > 0)]
-            df_titulares = df[df['substitute'] == False]
-            nombres_titulares = df_titulares['name'].unique()
-            nombres_jugadores_disponibles = df['name'].unique()
-            nombres_jugadores_disponibles = nombres_jugadores_disponibles.tolist()
-            nombres_jugadores_disponibles = sorted(nombres_jugadores_disponibles, key=lambda x: df[df['name'] == x]['minutesPlayed'].values[0],reverse=True)
-            jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
-            ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
+    with st.container():
+        st.write('-------------------')
+        selectores, imagenes =  st.columns([4,1])
+        with selectores:
+            #Seleccion de jornada
+            jornadas_disponibles = [value for key, value in nombres_jornadas.items()]
+            jornada, nombre_jornada = seleccionar_jornada(jornadas_disponibles)
+            if jornada and nombre_jornada:
+                df = df[(df['Jornada'] == nombre_jornada) & (df['minutesPlayed'] > 0)]
+                df_titulares = df[df['substitute'] == False]
+                nombres_titulares = df_titulares['name'].unique()
+                jugador_selector = seleccionar_jugador(df)
+                ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
+                if jugador_selector:
+                    pantalla_equipo , pantalla_heatmap, pantalla_otros = st.columns([4,5,2])
+                    with pantalla_equipo:
+                        st.header('Información del partido')
+                        df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['Jornada'] == jornada]
+                        df_datos_oponentes = df_datos_oponentes[df_datos_oponentes['Jornada'] == jornada]
+                        mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias, df_posiciones_medias_oponentes,df_datos_oponentes)
+                    with pantalla_heatmap:
+                        st.header('Información del jugador')
+                        st.subheader('Mapa de calor y posición promedio')
+                        mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
+                    with pantalla_otros:
+                        st.header('Datos del jugador')
+                        df_jugador = df[df['name'] == jugador_selector]
+                        df_posicion = df_jugador.merge(df_maestro, left_on='name', right_on='Jugador', how='left')
+                        posiciones_jugador_seleccionado = obtener_posiciones(df_posicion)
+                        df_rendimiento = obtener_rendimiento(posiciones_jugador_seleccionado,df_jugador)
+                        df_stats_base , df_ratios_base = obtener_stats_base(df_rendimiento)
+                        df_concentracion = obtener_stats_concentracion(df_rendimiento)
+                        st.subheader('Ratios del jugador')
+                        st.table(df_ratios_base)
+                        with pantalla_heatmap:
+                            st.subheader('Estadísticas de posición')
+                            lista_posiciones = posiciones_jugador_seleccionado[2]
+                            lista_radares = posiciones_jugador_seleccionado[3]
+                            st.write(f"{', '.join(lista_posiciones)}")
+                            st.table(df_stats_base)
+
+        with imagenes:
+            ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
+            # Verificamos si el archivo existe antes de intentar mostrarlo
+            if os.path.exists(ruta_imagen_oponente):
+                st.image(ruta_imagen_oponente, width=90)
+            else:
+                st.markdown(f"No se encontró la imagen del oponente para {jornada}")
             if jugador_selector:
-                pantalla_equipo , pantalla_heatmap, pantalla_otros = st.columns([2,3,1])
-                with pantalla_equipo:
-                    st.subheader('Información del partido')
-                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['Jornada'] == jornada]
-                    df_datos_oponentes = df_datos_oponentes[df_datos_oponentes['Jornada'] == jornada]
-                    #Eliminar columna 'jerseyNumber' de df_datos_oponentes
-                    df_datos_oponentes = df_datos_oponentes.drop(columns='jerseyNumber')
-                    #Hacer join de df_posiciones_medias_oponentes con df_datos_oponentes por la columna 'shortName'
-                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes.merge(df_datos_oponentes, left_on='shortName', right_on='shortName', how='left')
-                    #Filtrar a los jugadores titulares
-                    df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['substitute'] == False]
-                    mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias, df_posiciones_medias_oponentes)
-                with pantalla_heatmap:
-                    st.subheader('Información del jugador')
-                    st.subheader('Mapa de calor y posición promedio')
-                    mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
-                with pantalla_otros:
-                    st.subheader('Radares de rendimiento')
-
-    with imagenes:
-        ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
-        # Verificamos si el archivo existe antes de intentar mostrarlo
-        if os.path.exists(ruta_imagen_oponente):
-            st.image(ruta_imagen_oponente, width=90)
-        else:
-            st.markdown(f"No se encontró la imagen del oponente para {jornada}")
-        if jugador_selector:
-                if os.path.exists(ruta_imagen_jugador):
-                    st.image(ruta_imagen_jugador, width=90)
-                else:
-                    st.markdown(f"No se encontró la imagen para {jugador_selector}")
-
+                    if os.path.exists(ruta_imagen_jugador):
+                        st.image(ruta_imagen_jugador, width=90)
+                    else:
+                        st.markdown(f"No se encontró la imagen para {jugador_selector}")
+            with st.container():
+                st.write('-------------------')
+                st.header('Radares de rendimiento')
+                st.table(lista_radares)
+                
 
 
 if __name__ == "__main__":

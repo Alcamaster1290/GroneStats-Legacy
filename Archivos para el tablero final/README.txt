@@ -34,7 +34,7 @@ Pendientes de procesar
 -----
 Concentración (para todos los jugadores):
 ["fouls"; "Faltas"]
-["was_fouled"; "Recibió falta"]
+["wasFouled"; "Recibió falta"]
 ["totalOffside"; "Fuera de juego"]
 ["dispossessed"; "Desposesiones"]
 ["errorLeadToAShot"; "Error que lleva a tiro"]
