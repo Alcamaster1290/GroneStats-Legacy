@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from mplsoccer.pitch import VerticalPitch
 import os
+from soccerplots.radar_chart import Radar
 
 # LOCAL VARIABLES
 
@@ -156,7 +157,6 @@ stats_defensores = {
     "totalClearance": "Despejes totales",
     "challengeLost": "Desafios perdidos",
     "interceptionWon": "Intercepciones ganadas",
-    "outfielderBlock": "Bloqueos con el cuerpo",
 }
 
 stats_porteros = {
@@ -507,6 +507,7 @@ def completar_datos(df_stats, df_jugador , lista_radares):
     df_stats = df_stats.sort_values(by='Pos')
     return df_stats
 
+
 # MATH FUNCTIONS
 
 def ajuste_polinomial(x, y, grado=8):
@@ -642,9 +643,9 @@ def main():
                         st.subheader('Ratios del jugador')
                         st.table(df_ratios_base)
                         with pantalla_heatmap:
-                            st.subheader('Estadísticas de posición')
-                            st.write(f"{', '.join(lista_posiciones)}")
-                            st.table(df_stats_posicion)
+                            st.subheader('Evolución al pasar las jornadas')
+
+                            
 
         with imagenes:
             ruta_imagen_oponente = f"Imagenes/Oponentes/{jornada}.png"
@@ -661,7 +662,41 @@ def main():
             with st.container():
                 st.write('-------------------')
                 st.header('Radares de rendimiento')
-                st.table(lista_radares)
+                st.write(f"{', '.join(lista_posiciones)}")
+                if st.button('Generar Radar Chart'):
+                    # Dividir df_stats_posicion en varios dataframes segun columna Pos
+                    df_basicos = df_stats_posicion[df_stats_posicion['Pos'] == 'B']
+                    df_stats_portero = df_stats_posicion[df_stats_posicion['Pos'] == 'G']
+                    df_stats_defensa = df_stats_posicion[df_stats_posicion['Pos'] == 'D']
+                    df_stats_mediocampo = df_stats_posicion[df_stats_posicion['Pos'] == 'M']
+                    df_stats_delantero = df_stats_posicion[df_stats_posicion['Pos'] == 'F']
+                    # Quitar columna 'Pos' de los dataframes
+                    df_basicos = df_basicos.drop(columns='Pos')
+                    df_basicos = df_basicos.sort_values('Estadística')
+                    df_stats_portero = df_stats_portero.drop(columns='Pos')
+                    df_stats_portero = df_stats_portero.sort_values('Estadística')
+                    df_stats_defensa = df_stats_defensa.drop(columns='Pos')
+                    df_stats_defensa = df_stats_defensa.sort_values('Estadística')
+                    df_stats_mediocampo = df_stats_mediocampo.drop(columns='Pos')
+                    df_stats_mediocampo = df_stats_mediocampo.sort_values('Estadística')
+                    df_stats_delantero = df_stats_delantero.drop(columns='Pos')
+                    df_stats_delantero = df_stats_delantero.sort_values('Estadística')
+                    # Mostrar los dataframes en tablas
+                    if not df_basicos.empty:
+                        st.table(df_basicos)
+                        #Crear grafico radar de portero
+                    if not df_stats_portero.empty:
+                        st.table(df_stats_portero)
+                        #Crear grafico radar de portero
+                    if not df_stats_defensa.empty:
+                        st.table(df_stats_defensa)
+                        #Crear grafico radar de defensa
+                    if not df_stats_mediocampo.empty:
+                        st.table(df_stats_mediocampo)
+                        #Crear grafico radar de mediocampo
+                    if not df_stats_delantero.empty:
+                        st.table(df_stats_delantero)
+                        #Crear grafico radar de delantero
                 
 
 
