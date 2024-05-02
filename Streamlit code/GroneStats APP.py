@@ -124,8 +124,6 @@ stats_base = {
     "aerialLost": "Duelos Aereos perdidos",
     "duelWon": "Duelos ganados",
     "duelLost": "Duelos perdidos",
-    "penaltyWon": "Penal ganado",
-    "penaltyMiss": "Penal fallado",    
 }
 
 stats_concentracion = {
@@ -133,8 +131,10 @@ stats_concentracion = {
     "wasFouled": "Recibió falta",
     "totalOffside": "Fuera de juego",
     "dispossessed": "Desposesiones",
+    "penaltyConceded": "Penal concedido",
     "errorLeadToAShot": "Error que lleva a tiro",
-    "penaltyConceded": "Penal concedido"
+    "penaltyWon": "Penal ganado",
+    "penaltyMiss": "Penal fallado", 
 }
 
 stats_delanteros = {
@@ -142,6 +142,7 @@ stats_delanteros = {
     "shotOffTarget": "Tiros fuera",
     "blockedScoringAttempt": "Tiro bloqueado",
     "hitWoodwork": "Tiro al poste",
+    "challengeLost": "Desafios perdidos",
 }
 
 stats_mediocentros = {
@@ -155,7 +156,6 @@ stats_mediocentros = {
 stats_defensores = {
     "totalTackle": "Entradas totales",
     "totalClearance": "Despejes totales",
-    "challengeLost": "Desafios perdidos",
     "interceptionWon": "Intercepciones ganadas",
 }
 
@@ -507,6 +507,92 @@ def completar_datos(df_stats, df_jugador , lista_radares):
     df_stats = df_stats.sort_values(by='Pos')
     return df_stats
 
+def genera_radar(df_stats, df_jugador, stats_equipo,nombre_jornada):
+
+    df_temp = df_stats.copy()
+    # Filtra stats_equipo por la columna 'Jornada' sea igual a nombre_jornada
+    stats_equipo = stats_equipo[stats_equipo['Jornada'] == nombre_jornada]
+    pos = df_temp['Pos'].tolist()
+    # Reducir pos a un solo elemento
+    pos = pos[0]
+    # Filtra df_jugador minutesPlayed mayor a 10
+    df_jugador = df_jugador[df_jugador['minutesPlayed'] > 10]
+    stats_equipo = stats_equipo[stats_equipo['minutesPlayed'] > 10]
+
+    # En caso pos sea distinto a 'B', Filtra stats_equipo por la columna 'position' sea igual a pos
+    if pos != 'B':
+        df_stats_equipo = stats_equipo[stats_equipo['position'] == pos]
+    else:
+        df_stats_equipo = stats_equipo
+    if pos == 'B':
+        # Filtrar df_jugador con las columnas que esten en el diccionario stats_base
+        df_jugador = df_jugador[stats_base.keys()]
+        df_jugador = df_jugador.drop(columns=['substitute', 'minutesPlayed', 'goals', 'goalAssist', 'bigChanceCreated', 'bigChanceMissed'])
+        stats_base_inv = {v: k for k, v in stats_base.items()}
+        # Pasa los valores de la columna Estadistica de df_stats a ingles usando el diccionario stats_base
+        df_temp['Estadística'] = df_temp['Estadística'].map(stats_base_inv)
+    elif pos == 'G':
+        # Filtrar df_jugador con las columnas que esten en el diccionario stats_porteros
+        df_jugador = df_jugador[stats_porteros.keys()]
+        stats_porteros_inv = {v: k for k, v in stats_porteros.items()}
+        # Pasa los valores de la columna Estadistica de df_stats a ingles usando el diccionario stats_porteros
+        df_temp['Estadística'] = df_temp['Estadística'].map(stats_porteros_inv)
+    elif pos == 'D':
+        # Filtrar df_jugador con las columnas que esten en el diccionario stats_defensores
+        df_jugador = df_jugador[stats_defensores.keys()]
+        stats_defensores_inv = {v: k for k, v in stats_defensores.items()}
+        # Pasa los valores de la columna Estadistica de df_stats a ingles usando el diccionario stats_defensores
+        df_temp['Estadística'] = df_temp['Estadística'].map(stats_defensores_inv)
+        
+    elif pos == 'M':
+        # Filtrar df_jugador con las columnas que esten en el diccionario stats_mediocentros
+        df_jugador = df_jugador[stats_mediocentros.keys()]
+        stats_mediocentros_inv = {v: k for k, v in stats_mediocentros.items()}
+        # Pasa los valores de la columna Estadistica de df_stats a ingles usando el diccionario stats_mediocentros
+        df_temp['Estadística'] = df_temp['Estadística'].map(stats_mediocentros_inv)
+        
+    elif pos == 'F':
+        # Filtrar df_jugador con las columnas que esten en el diccionario stats_delanteros
+        df_jugador = df_jugador[stats_delanteros.keys()]
+        stats_delanteros_inv = {v: k for k, v in stats_delanteros.items()}
+        # Pasa los valores de la columna Estadistica de df_stats a ingles usando el diccionario stats_delanteros
+        df_temp['Estadística'] = df_temp['Estadística'].map(stats_delanteros_inv)
+        
+    # Reemplazar None por 0
+    df_jugador = df_jugador.fillna(0)
+    df_temp = df_temp.fillna(0)
+    df_stats_equipo = df_stats_equipo.fillna(0)
+
+    # Para cada fila de la columna Estadistica de df_stats, buscar el maximo y minimo valor como columna en df_jugador
+    for index, row in df_temp.iterrows():
+        stat = row['Estadística']
+        max_value = df_jugador[stat].max()
+        max_equipo = df_stats_equipo[stat].max()
+        min_equipo = df_stats_equipo[stat].min()
+        min_value = df_jugador[stat].min()
+        if max_value == 0:
+            min_value = max_value
+        if max_equipo == 0 or max_equipo == None:
+            max_equipo = 0
+            min_equipo = max_equipo
+        # Agregar columna rango_max y rango_min en la fila que corresponda a df_temp
+        df_temp.loc[index, 'RMax_personal'] = max_value
+        df_temp.loc[index, 'RMin_personal'] = min_value
+        df_temp.loc[index, 'RMax_equipo'] = max_equipo
+        df_temp.loc[index, 'RMin_equipo'] = min_equipo
+        #st.write(f"{stat} - {max_value} - {min_value} - {max_equipo} - {min_equipo}")
+
+
+    # Elimina columnas 'Estadística' y 'Pos' de df_temp
+    df_temp = df_temp.drop(columns=['Estadística', 'Pos'])
+    # Copiar columnas RMax_equipo, RMin_equipo, RMax_personal y RMin_personal a df_stats
+    df_stats['RMax_equipo'] = df_temp['RMax_equipo']
+    df_stats['RMin_equipo'] = df_temp['RMin_equipo']
+    df_stats['RMax_personal'] = df_temp['RMax_personal']
+    df_stats['RMin_personal'] = df_temp['RMin_personal']
+    df_stats = df_stats.drop(columns='Pos')
+    st.write(df_stats,pos)
+    return df_stats, pos
 
 # MATH FUNCTIONS
 
@@ -601,6 +687,7 @@ def main():
         st.image(f'Imagenes\AL.png', width=80)
     
     df = cargar_datos_jugadores() # Se cargan los datos de Resumen_AL_Jugadores.xlsx
+    df_carga = cargar_datos_jugadores()
     df_posiciones_medias_oponentes = cargar_datos_medias_oponentes() # Se cargan los datos de las posiciones medias de los oponentes
     df_datos_oponentes = cargar_datos_oponentes() #Se cargan los datos de los oponentes de cada jornada 
 
@@ -612,6 +699,7 @@ def main():
             jornadas_disponibles = [value for key, value in nombres_jornadas.items()]
             jornada, nombre_jornada = seleccionar_jornada(jornadas_disponibles)
             if jornada and nombre_jornada:
+                es_local = "Local" in nombre_jornada # Para el match momentum, faltan los datos
                 df = df[(df['Jornada'] == nombre_jornada) & (df['minutesPlayed'] > 0)]
                 df_titulares = df[df['substitute'] == False]
                 nombres_titulares = df_titulares['name'].unique()
@@ -631,6 +719,7 @@ def main():
                     with pantalla_otros:
                         st.header('Datos del jugador')
                         df_jugador = df[df['name'] == jugador_selector]
+                        df_jugador_completo = df_carga[df_carga['name'] == jugador_selector]
                         df_posicion = df_jugador.merge(df_maestro, left_on='name', right_on='Jugador', how='left')
                         posiciones_jugador_seleccionado = obtener_posiciones(df_posicion)
                         df_rendimiento = obtener_rendimiento(posiciones_jugador_seleccionado,df_jugador)
@@ -663,40 +752,30 @@ def main():
                 st.write('-------------------')
                 st.header('Radares de rendimiento')
                 st.write(f"{', '.join(lista_posiciones)}")
-                if st.button('Generar Radar Chart'):
-                    # Dividir df_stats_posicion en varios dataframes segun columna Pos
-                    df_basicos = df_stats_posicion[df_stats_posicion['Pos'] == 'B']
-                    df_stats_portero = df_stats_posicion[df_stats_posicion['Pos'] == 'G']
-                    df_stats_defensa = df_stats_posicion[df_stats_posicion['Pos'] == 'D']
-                    df_stats_mediocampo = df_stats_posicion[df_stats_posicion['Pos'] == 'M']
-                    df_stats_delantero = df_stats_posicion[df_stats_posicion['Pos'] == 'F']
-                    # Quitar columna 'Pos' de los dataframes
-                    df_basicos = df_basicos.drop(columns='Pos')
-                    df_basicos = df_basicos.sort_values('Estadística')
-                    df_stats_portero = df_stats_portero.drop(columns='Pos')
-                    df_stats_portero = df_stats_portero.sort_values('Estadística')
-                    df_stats_defensa = df_stats_defensa.drop(columns='Pos')
-                    df_stats_defensa = df_stats_defensa.sort_values('Estadística')
-                    df_stats_mediocampo = df_stats_mediocampo.drop(columns='Pos')
-                    df_stats_mediocampo = df_stats_mediocampo.sort_values('Estadística')
-                    df_stats_delantero = df_stats_delantero.drop(columns='Pos')
-                    df_stats_delantero = df_stats_delantero.sort_values('Estadística')
-                    # Mostrar los dataframes en tablas
-                    if not df_basicos.empty:
-                        st.table(df_basicos)
-                        #Crear grafico radar de portero
-                    if not df_stats_portero.empty:
-                        st.table(df_stats_portero)
-                        #Crear grafico radar de portero
-                    if not df_stats_defensa.empty:
-                        st.table(df_stats_defensa)
-                        #Crear grafico radar de defensa
-                    if not df_stats_mediocampo.empty:
-                        st.table(df_stats_mediocampo)
-                        #Crear grafico radar de mediocampo
-                    if not df_stats_delantero.empty:
-                        st.table(df_stats_delantero)
-                        #Crear grafico radar de delantero
+
+                # Dividir df_stats_posicion en varios dataframes segun columna Pos
+                df_basicos = df_stats_posicion[df_stats_posicion['Pos'] == 'B']
+                df_stats_portero = df_stats_posicion[df_stats_posicion['Pos'] == 'G']
+                df_stats_defensa = df_stats_posicion[df_stats_posicion['Pos'] == 'D']
+                df_stats_mediocampo = df_stats_posicion[df_stats_posicion['Pos'] == 'M']
+                df_stats_delantero = df_stats_posicion[df_stats_posicion['Pos'] == 'F']
+
+                # Mostrar los dataframes en tablas
+                if not df_basicos.empty:
+                    #Crear grafico radar stats_base
+                    genera_radar(df_basicos,df_jugador_completo,df_carga,nombre_jornada)
+                if not df_stats_portero.empty:
+                    #Crear grafico radar de portero
+                    genera_radar(df_stats_portero,df_jugador_completo,df_carga,nombre_jornada)
+                if not df_stats_defensa.empty:
+                    #Crear grafico radar de defensa
+                    genera_radar(df_stats_defensa,df_jugador_completo,df_carga,nombre_jornada)
+                if not df_stats_mediocampo.empty:
+                    #Crear grafico radar de mediocampo
+                    genera_radar(df_stats_mediocampo,df_jugador_completo,df_carga,nombre_jornada)
+                if not df_stats_delantero.empty:
+                    #Crear grafico radar de delantero
+                    genera_radar(df_stats_delantero,df_jugador_completo,df_carga,nombre_jornada)
                 
 
 
