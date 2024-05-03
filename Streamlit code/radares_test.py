@@ -64,6 +64,9 @@ def radar_chart(data, selected_metrics, jugador, jornada_seleccionada, ranges, m
     fig,ax = radar.plot_radar(ranges=ranges,params=selected_metrics,values=data
                               ,title=title,endnote=endnote, radar_color=['#192745', '#C0C0C0'])
     ax.grid(True)
+    st.write(ranges)
+    st.write(data)
+    st.write(selected_metrics)
     st.pyplot(fig)
 
 def main():

@@ -142,7 +142,6 @@ stats_delanteros = {
     "shotOffTarget": "Tiros fuera",
     "blockedScoringAttempt": "Tiro bloqueado",
     "hitWoodwork": "Tiro al poste",
-    "challengeLost": "Desafios perdidos",
 }
 
 stats_mediocentros = {
@@ -151,6 +150,7 @@ stats_mediocentros = {
     "totalCross": "Centros totales",
     "wonContest": "Regates con éxito",
     "totalContest": "Regates totales",
+    "challengeLost": "Fue regateado",
 }
 
 stats_defensores = {
@@ -408,14 +408,20 @@ def obtener_stats_base(df_rendimiento):
         st.write(f"<div style='text-align: center;'>{row['Estadística']}: {row['Valor']}</div>", unsafe_allow_html=True)
     
     df_ratios_base = pd.DataFrame(columns=['Ratio', 'Valor'])
+
     # Calcular los ratios y agregarlos como nuevas filas
     df_ratios_base.loc[0] = ['Ratio Pases precisos', df_stats_base.loc[6, 'Valor'] / df_stats_base.loc[7, 'Valor']]
     df_ratios_base.loc[1] = ['Ratio Pases largos precisos', df_stats_base.loc[8, 'Valor'] / df_stats_base.loc[9, 'Valor']]
-    df_ratios_base.loc[2] = ['Ratio Toques por pérdida', df_stats_base.loc[11, 'Valor'] / df_stats_base.loc[10, 'Valor']]
-    df_ratios_base.loc[3] = ['Ratio Duelos ganados', (df_stats_base.loc[12, 'Valor']
+    df_ratios_base.loc[2] = ['Ratio Toques hasta pérdida', df_stats_base.loc[11, 'Valor'] / df_stats_base.loc[10, 'Valor']]
+    # Verifica que existen indice 14 y 15
+    if 14 in df_stats_base.index and 15 in df_stats_base.index:
+        df_ratios_base.loc[3] = ['Ratio Duelos ganados', (df_stats_base.loc[12, 'Valor']
                                                         + df_stats_base.loc[14, 'Valor'] )  / 
                                                         (df_stats_base.loc[13, 'Valor'] 
                                                         + df_stats_base.loc[15, 'Valor'])]
+    else:
+        df_ratios_base.loc[3] = ['Ratio Duelos ganados', df_stats_base.loc[12, 'Valor'] / df_stats_base.loc[13, 'Valor']]
+
     # Redondear los valores a dos decimales
     df_ratios_base['Valor'] = df_ratios_base['Valor'].round(2)
     # Eliminar ratios vacios
@@ -507,7 +513,7 @@ def completar_datos(df_stats, df_jugador , lista_radares):
     df_stats = df_stats.sort_values(by='Pos')
     return df_stats
 
-def genera_radar(df_stats, df_jugador, stats_equipo,nombre_jornada):
+def genera_rangos(df_stats, df_jugador, stats_equipo,nombre_jornada):
 
     df_temp = df_stats.copy()
     # Filtra stats_equipo por la columna 'Jornada' sea igual a nombre_jornada
@@ -591,8 +597,50 @@ def genera_radar(df_stats, df_jugador, stats_equipo,nombre_jornada):
     df_stats['RMax_personal'] = df_temp['RMax_personal']
     df_stats['RMin_personal'] = df_temp['RMin_personal']
     df_stats = df_stats.drop(columns='Pos')
-    st.write(df_stats,pos)
     return df_stats, pos
+
+def mostrar_radar(df_stats, pos):
+    
+    if pos ==  'G':
+        subtitulo = 'Acciones de portero'
+        color = 'orange'
+    elif pos == 'D':
+        subtitulo = 'Acciones defensivas'
+        color = 'yellow'
+    elif pos == 'M':
+        subtitulo = 'Acciones de mediocampista'
+        color = 'green'
+    elif pos == 'F':
+        subtitulo = 'Acciones de delantero'
+        color = '#192745'
+    elif pos == 'B':
+        subtitulo = 'Acciones de base'
+        color = 'blue'
+    # Ordena df_stats por indice
+    df_stats = df_stats.sort_index()
+    title = dict(
+        title_name= f'Radar de acciones\n',
+        subtitle_name = f'{subtitulo} \n Referencia de rango: Maximo del equipo',
+        title_color = color,
+        title_fontsize = 30,
+        subtitle_fontsize = 120,
+        subtitle_color = 'black',
+    )
+    endnote = 'Alianza Lima - Data via Sofascore'
+
+    rango_equipo_list = list(zip(df_stats['RMin_equipo'], df_stats['RMax_equipo']))
+    rango_personal_list = list(zip( df_stats['RMin_personal'], df_stats['RMax_personal']))
+    # Compara ambos rangos y elige el mayor
+    rango_list = [max(rango_personal_list[i], rango_equipo_list[i]) for i in range(len(rango_personal_list))]
+    data_list = df_stats['Valor'].tolist()
+    params = df_stats['Estadística'].tolist()
+    # Crear el radar
+    radar = Radar(background_color="#C0C0C0", patch_color="#28252C", label_color='black',
+            range_color="#000000",fontfamily="Times New Roman")
+    fig,ax = radar.plot_radar(ranges=rango_list,params=params,values=data_list
+                            ,title=title,endnote=endnote, radar_color=['#192745', '#C0C0C0'])
+    ax.grid(True)
+    st.pyplot(fig)
 
 # MATH FUNCTIONS
 
@@ -763,19 +811,26 @@ def main():
                 # Mostrar los dataframes en tablas
                 if not df_basicos.empty:
                     #Crear grafico radar stats_base
-                    genera_radar(df_basicos,df_jugador_completo,df_carga,nombre_jornada)
+                    df_statsconrangos , pos = genera_rangos(df_basicos,df_jugador_completo,df_carga,nombre_jornada)
+                    mostrar_radar(df_statsconrangos , pos)
                 if not df_stats_portero.empty:
                     #Crear grafico radar de portero
-                    genera_radar(df_stats_portero,df_jugador_completo,df_carga,nombre_jornada)
+                    df_statsconrangos , pos = genera_rangos(df_stats_portero,df_jugador_completo,df_carga,nombre_jornada)
+                    mostrar_radar(df_statsconrangos , pos)
                 if not df_stats_defensa.empty:
                     #Crear grafico radar de defensa
-                    genera_radar(df_stats_defensa,df_jugador_completo,df_carga,nombre_jornada)
+                    df_statsconrangos , pos = genera_rangos(df_stats_defensa,df_jugador_completo,df_carga,nombre_jornada)
+                    mostrar_radar(df_statsconrangos , pos)
                 if not df_stats_mediocampo.empty:
                     #Crear grafico radar de mediocampo
-                    genera_radar(df_stats_mediocampo,df_jugador_completo,df_carga,nombre_jornada)
+                    df_statsconrangos , pos = genera_rangos(df_stats_mediocampo,df_jugador_completo,df_carga,nombre_jornada)
+                    mostrar_radar(df_statsconrangos , pos)
                 if not df_stats_delantero.empty:
                     #Crear grafico radar de delantero
-                    genera_radar(df_stats_delantero,df_jugador_completo,df_carga,nombre_jornada)
+                    df_statsconrangos , pos = genera_rangos(df_stats_delantero,df_jugador_completo,df_carga,nombre_jornada)
+                    mostrar_radar(df_statsconrangos , pos)
+
+                
                 
 
 
