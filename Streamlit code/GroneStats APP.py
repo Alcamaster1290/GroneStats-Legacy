@@ -114,15 +114,15 @@ stats_base = {
     "goalAssist": "Asistencias",
     "bigChanceCreated": "Gran chance de gol creada",
     "bigChanceMissed": "Gran chance de gol fallada",
-    "accuratePass": "Pases precisos",
-    "totalPass": "Pases intentados",
-    "accurateLongBalls": "Pases largos precisos",
-    "totalLongBalls": "Pases largos intentados",
-    "possessionLostCtrl": "Posesión controlada perdida",
     "touches": "Toques de balón",
-    "aerialWon": "Duelos Aereos ganados",
-    "aerialLost": "Duelos Aereos perdidos",
+    "accurateLongBalls": "Pases L. precisos",
+    "aerialWon": "Duelos A. ganados",
+    "accuratePass": "Pases precisos",
     "duelWon": "Duelos ganados",
+    "possessionLostCtrl": "Posesión controlada perdida",
+    "totalLongBalls": "Pases L. intentados",
+    "aerialLost": "Duelos A. perdidos",
+    "totalPass": "Pases intentados",
     "duelLost": "Duelos perdidos",
 }
 
@@ -147,9 +147,9 @@ stats_delanteros = {
 stats_mediocentros = {
     "keyPass": "Pases clave",
     "accurateCross": "Centros precisos",
-    "totalCross": "Centros totales",
-    "wonContest": "Regates con éxito",
     "totalContest": "Regates totales",
+    "wonContest": "Regates con éxito",
+    "totalCross": "Centros totales",
     "challengeLost": "Fue regateado",
 }
 
