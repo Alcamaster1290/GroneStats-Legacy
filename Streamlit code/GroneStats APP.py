@@ -410,22 +410,18 @@ def obtener_stats_base(df_rendimiento):
     df_ratios_base = pd.DataFrame(columns=['Ratio', 'Valor'])
 
     # Calcular los ratios y agregarlos como nuevas filas
-    df_ratios_base.loc[0] = ['Ratio Pases precisos', df_stats_base.loc[6, 'Valor'] / df_stats_base.loc[7, 'Valor']]
-    df_ratios_base.loc[1] = ['Ratio Pases largos precisos', df_stats_base.loc[8, 'Valor'] / df_stats_base.loc[9, 'Valor']]
-    df_ratios_base.loc[2] = ['Ratio Toques hasta pérdida', df_stats_base.loc[11, 'Valor'] / df_stats_base.loc[10, 'Valor']]
-    # Verifica que existen indice 14 y 15
-    if 14 in df_stats_base.index and 15 in df_stats_base.index:
-        df_ratios_base.loc[3] = ['Ratio Duelos ganados', (df_stats_base.loc[12, 'Valor']
-                                                        + df_stats_base.loc[14, 'Valor'] )  / 
-                                                        (df_stats_base.loc[13, 'Valor'] 
-                                                        + df_stats_base.loc[15, 'Valor'])]
-    else:
-        df_ratios_base.loc[3] = ['Ratio Duelos ganados', df_stats_base.loc[12, 'Valor'] / df_stats_base.loc[13, 'Valor']]
+    df_ratios_base.loc[0] = ['Toques hasta pérdida', (df_stats_base.loc[6, 'Valor'] / df_stats_base.loc[11, 'Valor'])]
+    df_ratios_base.loc[1] = ['% Pases Largos precisos', (df_stats_base.loc[7, 'Valor'] / df_stats_base.loc[12, 'Valor']) * 100]
+    df_ratios_base.loc[2] = ['% Pases precisos', (df_stats_base.loc[9, 'Valor'] / df_stats_base.loc[14, 'Valor']) * 100]
+    df_ratios_base.loc[3] = ['% Duelos Aéreos Ganados', (df_stats_base.loc[8, 'Valor'] / (df_stats_base.loc[8, 'Valor'] + df_stats_base.loc[13, 'Valor'])) * 100]
+    df_ratios_base.loc[4] = ['% Duelos en Suelo Ganados', (df_stats_base.loc[10, 'Valor'] / (df_stats_base.loc[10, 'Valor'] + df_stats_base.loc[15, 'Valor'])) * 100]
 
     # Redondear los valores a dos decimales
     df_ratios_base['Valor'] = df_ratios_base['Valor'].round(2)
     # Eliminar ratios vacios
     df_ratios_base = df_ratios_base.dropna()
+    # Corta a dos decimales
+    df_ratios_base['Valor'] = df_ratios_base['Valor'].apply(lambda x: f"{x:.2f}")
     return df_stats_base, df_ratios_base
 
 def obtener_stats_concentracion(df_rendimiento):
@@ -596,7 +592,7 @@ def genera_rangos(df_stats, df_jugador, stats_equipo,nombre_jornada):
     df_stats['RMin_equipo'] = df_temp['RMin_equipo']
     df_stats['RMax_personal'] = df_temp['RMax_personal']
     df_stats['RMin_personal'] = df_temp['RMin_personal']
-    df_stats = df_stats.drop(columns='Pos')
+    #df_stats = df_stats.drop(columns='Pos')
     return df_stats, pos
 
 def mostrar_radar(df_stats, pos):
@@ -660,7 +656,11 @@ def configurar_pagina():
 
 @st.cache_data
 def cargar_general():
-    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/ALIANZA LIMA 2024.xlsx')
+    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/ALIANZA LIMA 2024.xlsx', sheet_name='Jugadores')
+    return df
+
+def cargar_jornadas_manual():
+    df = pd.read_excel('C:/Users/Alvaro/Proyectos/Proyecto Gronestats/GroneStats/ALIANZA LIMA 2024.xlsx', sheet_name='Jornadas')
     return df
 
 @st.cache_data
@@ -720,8 +720,47 @@ def seleccionar_jugador(df):
     jugador_selector = st.selectbox('Selecciona un jugador:', nombres_jugadores_disponibles, key='jugador_selector')
     return jugador_selector
 
+def mostrar_resultado_partido(df_jornada):
+    # Si df_jornada['Condicion'] es Local entonces df['g_L'] es el resultado de Alianza Lima
+    # Si df_jornada['Condicion'] es Visitante entonces df['g_V'] es el resultado del dato de la columna Equipo Oponente
+    if (df_jornada['Condicion'] == 'Local').any():
+        team_home = 'Alianza Lima'
+        team_away = df_jornada['Equipo oponente'].values[0]
+        score_home = df_jornada['g_L'].values[0]
+        score_away = df_jornada['g_V'].values[0]
+        # Color de la fuente de Alianza Lima es azul oscuro
+        color_home = 'darkblue'
+        # Si la columna 'Rival directo' es True, entonces el color de la fuente del equipo oponente es rojo
+        if df_jornada['Rival directo'].values[0]:
+            color_away = 'red'
+        else:
+            color_away = 'black'
+    else:
+        team_home = df_jornada['Equipo oponente'].values[0]
+        team_away = 'Alianza Lima'
+        score_home = df_jornada['g_L'].values[0]
+        score_away = df_jornada['g_V'].values[0]
+        # Color de la fuente de Alianza Lima es azul oscuro
+        color_away = 'darkblue'
+        # Si la columna 'Rival directo' es True, entonces el color de la fuente del equipo oponente es rojo
+        if df_jornada['Rival directo'].values[0]:
+            color_home = 'red'
+        else:
+            color_home = 'black'
 
+    # Crear los ejes
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.axis('off')
+    ax.set_facecolor('white')
+    ax.text(0.5, 0.5, f"{team_home} ", 
+           ha='left', va='center', fontsize=24, fontweight='bold', color=color_home)
+    ax.text(0.5, 0.5, "-", 
+            ha='center', va='center', fontsize=24, fontweight='bold', color='black')
+    ax.text(0.5, 0.5, f"{team_away}", 
+            ha='right', va='center', fontsize=24, fontweight='bold', color=color_away)
 
+    # Mostrar el gráfico
+    st.pyplot(fig)
 
 def main():
     configurar_pagina()
@@ -738,6 +777,7 @@ def main():
     df_carga = cargar_datos_jugadores()
     df_posiciones_medias_oponentes = cargar_datos_medias_oponentes() # Se cargan los datos de las posiciones medias de los oponentes
     df_datos_oponentes = cargar_datos_oponentes() #Se cargan los datos de los oponentes de cada jornada 
+    df_jornadas = cargar_jornadas_manual() # Se cargan los datos manuales de las jornadas de ALIANZA LIMA 2024.xlsx
 
     with st.container():
         st.write('-------------------')
@@ -754,13 +794,13 @@ def main():
                 jugador_selector = seleccionar_jugador(df)
                 ruta_imagen_jugador = f"Imagenes/Jugadores/{jugador_selector}.png"
                 if jugador_selector:
-                    pantalla_equipo , pantalla_heatmap, pantalla_otros = st.columns([4,5,2])
+                    pantalla_equipo , pantalla_jugador, pantalla_otros = st.columns([4,5,2])
                     with pantalla_equipo:
                         st.header('Información del partido')
                         df_posiciones_medias_oponentes = df_posiciones_medias_oponentes[df_posiciones_medias_oponentes['Jornada'] == jornada]
                         df_datos_oponentes = df_datos_oponentes[df_datos_oponentes['Jornada'] == jornada]
                         mostrar_pos_media_equipo(nombres_titulares,jornada,df_posiciones_medias, df_posiciones_medias_oponentes,df_datos_oponentes)
-                    with pantalla_heatmap:
+                    with pantalla_jugador:
                         st.header('Información del jugador')
                         st.subheader('Mapa de calor y posición promedio')
                         mostrar_heatmap_pos_media(jugador_selector,jornada,df_posiciones_medias,df_heatmaps)
@@ -779,9 +819,6 @@ def main():
                         df_stats_posicion = completar_datos(df_stats_base, df_rendimiento , lista_radares)
                         st.subheader('Ratios del jugador')
                         st.table(df_ratios_base)
-                        with pantalla_heatmap:
-                            st.subheader('Evolución al pasar las jornadas')
-
                             
 
         with imagenes:
@@ -808,29 +845,54 @@ def main():
                 df_stats_mediocampo = df_stats_posicion[df_stats_posicion['Pos'] == 'M']
                 df_stats_delantero = df_stats_posicion[df_stats_posicion['Pos'] == 'F']
 
-                # Mostrar los dataframes en tablas
-                if not df_basicos.empty:
-                    #Crear grafico radar stats_base
-                    df_statsconrangos , pos = genera_rangos(df_basicos,df_jugador_completo,df_carga,nombre_jornada)
-                    mostrar_radar(df_statsconrangos , pos)
-                if not df_stats_portero.empty:
-                    #Crear grafico radar de portero
-                    df_statsconrangos , pos = genera_rangos(df_stats_portero,df_jugador_completo,df_carga,nombre_jornada)
-                    mostrar_radar(df_statsconrangos , pos)
-                if not df_stats_defensa.empty:
-                    #Crear grafico radar de defensa
-                    df_statsconrangos , pos = genera_rangos(df_stats_defensa,df_jugador_completo,df_carga,nombre_jornada)
-                    mostrar_radar(df_statsconrangos , pos)
-                if not df_stats_mediocampo.empty:
-                    #Crear grafico radar de mediocampo
-                    df_statsconrangos , pos = genera_rangos(df_stats_mediocampo,df_jugador_completo,df_carga,nombre_jornada)
-                    mostrar_radar(df_statsconrangos , pos)
-                if not df_stats_delantero.empty:
-                    #Crear grafico radar de delantero
-                    df_statsconrangos , pos = genera_rangos(df_stats_delantero,df_jugador_completo,df_carga,nombre_jornada)
-                    mostrar_radar(df_statsconrangos , pos)
+                dataframes_list = []
 
-                
+                if not df_basicos.empty:
+                    # Crear gráfico radar stats_base
+                    df_statsconrangos, pos = genera_rangos(df_basicos, df_jugador_completo, df_carga, nombre_jornada)
+                    mostrar_radar(df_statsconrangos, pos)
+
+                if not df_stats_portero.empty:
+                    # Crear gráfico radar de portero
+                    df_statsconrangos, pos = genera_rangos(df_stats_portero, df_jugador_completo, df_carga, nombre_jornada)
+                    mostrar_radar(df_statsconrangos, pos)
+                    dataframes_list.append(df_statsconrangos)
+
+                if not df_stats_defensa.empty:
+                    # Crear gráfico radar de defensa
+                    df_statsconrangos, pos = genera_rangos(df_stats_defensa, df_jugador_completo, df_carga, nombre_jornada)
+                    mostrar_radar(df_statsconrangos, pos)
+                    dataframes_list.append(df_statsconrangos)
+
+                if not df_stats_mediocampo.empty:
+                    # Crear gráfico radar de mediocampo
+                    df_statsconrangos, pos = genera_rangos(df_stats_mediocampo, df_jugador_completo, df_carga, nombre_jornada)
+                    mostrar_radar(df_statsconrangos, pos)
+                    dataframes_list.append(df_statsconrangos)
+
+                if not df_stats_delantero.empty:
+                    # Crear gráfico radar de delantero
+                    df_statsconrangos, pos = genera_rangos(df_stats_delantero, df_jugador_completo, df_carga, nombre_jornada)
+                    mostrar_radar(df_statsconrangos, pos)
+                    dataframes_list.append(df_statsconrangos)
+
+                # Concatenar todos los dataframes en uno solo
+                df_rangos = pd.concat(dataframes_list, ignore_index=True)
+                # Eliminar filas con columna RMax_equipo igual a 0
+                df_valor_con_rangos = df_rangos[df_rangos['RMax_equipo'] != 0]
+                with pantalla_jugador:
+                    st.table(df_valor_con_rangos)
+                with pantalla_equipo:
+                    st.write('-------------------')
+                    df_jornada = df_jornadas[df_jornadas['Jornada'].str[-12:] == nombre_jornada[-12:]]
+                    df_jornada['Jornada'] = nombre_jornada
+                    mostrar_resultado_partido(df_jornada)
+                    if es_local == True:
+                        # Quedarse con la fila que tenga la columna Condicion igual a 'Local'
+                        df_jornada = df_jornada[df_jornada['Condicion'] == 'Local']
+                    st.write(df_jornada)
+                    st.write(df_datos_oponentes)
+                    #obtener_rival_destacado(df_datos_oponentes) # Ordena por rating y muestra el primer rival
                 
 
 
