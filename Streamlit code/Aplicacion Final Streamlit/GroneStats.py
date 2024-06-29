@@ -9,6 +9,8 @@ from PIL import Image
 from mplsoccer.pitch import VerticalPitch
 import os
 
+## -------------------------------------------- DICCIONARIOS --------------------------------
+
 posiciones_map = {
     'G': 'Portero',
     'D': 'Defensa',
@@ -38,6 +40,37 @@ colores_oponentes = {
     'Cerro Porteño': 'red',
     'Colo Colo': 'white',
     }
+
+torneos_d = {
+    'Apertura Liga 1': 'Apertura',
+    'Copa Libertadores': 'CL',
+}
+
+rivales_directos_peru = {
+    'Universitario de Deportes': True,
+    'Sporting Cristal': True,
+    'Melgar': True,
+    'Cienciano': True,
+    'Atlético Grau': False,
+    'UTC': False,
+    'Universidad Cesar Vallejo': False,
+    'Cusco': False,
+    'Sport Huancayo': False,
+    'ADT': False,
+    'Sport Boys': False,
+    'Alianza Atlético de Sullana': False,
+    'Carlos Manucci': False,
+    'Deportivo Garcilaso': False,
+    'Unión Comercio': False,
+    'Comerciantes Unidos': False,
+    'Los Chankas': False, 
+}
+
+rivales_directos_copa = {
+    'Fluminense': True,
+    'Cerro Porteño': True,
+    'Colo Colo': True,
+}
 
 colores_posicion = {
         'G': 'red',
@@ -116,26 +149,28 @@ Pos_Secu_Map = {
     'DLC': '0'
 }
 
+## -------------------------------- INITIAL CONFIG -----------------------------------
+
 def configurar_pagina():
     st.set_page_config(
         page_title="Análisis de jugadores de Alianza Lima Temporada 2024",
         layout='wide',
-        page_icon=r'Imagenes\AL.png',
+        page_icon=r'Aplicacion Final\Imagenes\AL.png',
         initial_sidebar_state="expanded")
     titulo, alianza = st.columns([2,1])
     with titulo:
         st.title('GRONESTATS')
-        st.subheader('Analisis estadistico de Alianza Lima')
+        st.subheader('Análisis estadístico de Alianza Lima')
     with alianza:
-        st.image(f'Imagenes\AL.png', width=80)
+        st.image(f'Aplicacion Final\Imagenes\AL.png', width=80)
 
 def imprimir_escudo_oponente(equipo_oponente, torneos):
     for torneo in torneos:
-        image_path = os.path.join(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\Imagenes\Oponentes', torneo, f"{equipo_oponente}.png")
+        image_path = os.path.join(r'Aplicacion Final\Imagenes\Oponentes', torneo, f"{equipo_oponente}.png")
         if os.path.exists(image_path):
             try:
                 image = Image.open(image_path)
-                st.image(image,width=195,caption=f"{equipo_oponente}")
+                st.image(image,width=185)
                 return  # Salir de la función si se encuentra la imagen
             except Exception as e:
                 st.write(f"Error al abrir la imagen: {e}")
@@ -143,7 +178,7 @@ def imprimir_escudo_oponente(equipo_oponente, torneos):
     st.write(f"No se encontró el escudo para {equipo_oponente} en los torneos seleccionados")
 
 def imprimir_escudo_AL():
-    image_path = os.path.join(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\Gronestats\Aplicacion Final\Imagenes\AL.png')
+    image_path = os.path.join(r'Aplicacion Final\Imagenes\AL.png')
     if os.path.exists(image_path):
         try:
             image = Image.open(image_path)
@@ -153,32 +188,49 @@ def imprimir_escudo_AL():
             st.write(f"Error al abrir la imagen: {e}")
             return
 
-def mostrar_xi_inicial_oponente(id_jornada,df_stats_oponentes,incluir_sustitutos=False):
+## -------------------------------------- GRAPH FUNCTIONS ------------------------------------------------
+
+def mostrar_xi_inicial_oponente(df_titulares_oponente,df_sustitutos_oponente,df_posiciones_prom_op, df_posiciones_prom_AL, incluir_sustitutos=False, incluir_al=False):
     
     orden_posicion = {'G': 0, 'D': 1, 'M': 2, 'F': 3}
 
-    df_filtrado_jugadores = df_stats_oponentes[df_stats_oponentes['substitute']==False]
-    df_posiciones_prom_op = pd.read_excel(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\2024\Posiciones promedio Oponente 2024\Posiciones_Prom_Oponentes_2024.xlsx', sheet_name=id_jornada)
-    df_posiciones_prom = df_posiciones_prom_op[df_posiciones_prom_op['name'].isin(df_filtrado_jugadores['name'])]
+    df_posiciones_prom = df_posiciones_prom_op[df_posiciones_prom_op['name'].isin(df_titulares_oponente['name'])]
     df_posiciones_prom.drop(['slug', 'shortName', 'userCount', 'id',  'pointsCount'], axis=1, inplace=True)
     df_posiciones_prom['orden'] = df_posiciones_prom['position'].map(orden_posicion)
     df_posiciones_prom.sort_values(by='orden', inplace=True)
-    xi_titular = df_posiciones_prom['name']
-    stats_xi_titular = df_filtrado_jugadores
+    
+    df_pos_sustitutos = df_posiciones_prom_op[df_posiciones_prom_op['name'].isin(df_sustitutos_oponente['name'])]
 
-    fig, ax = plt.subplots(figsize=(23, 11))
+    xi_titular = df_posiciones_prom['name']
+    sustitutos = df_pos_sustitutos['name']
+    xi_titular_al = df_posiciones_prom_AL['name']
+
+    fig, ax = plt.subplots(figsize=(23, 13))
     pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
     pitch.draw(ax=ax)
 
     for jugador in xi_titular:
         fila_jugador = df_posiciones_prom[(df_posiciones_prom['name'] == jugador)]
         if not fila_jugador.empty:
-            posicion = fila_jugador['position'].values[0]
             equipo = fila_jugador['team'].values[0]
-            color = colores_oponentes.get(equipo, 'black')  # Usamos 'black' como color predeterminado si la posición no está en el mapa
-            pitch.scatter(100-(fila_jugador['averageX'].values[0]), 100-(fila_jugador['averageY'].values[0]), ax=ax, s=200, color=color, edgecolors='black', linewidth=2.5, zorder=1)
-            ax.text(100-(fila_jugador['averageY'].values[0]),100- (fila_jugador['averageX'].values[0]), fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=10, zorder=2)
+            color = colores_oponentes.get(equipo, 'black')  
+            pitch.scatter((fila_jugador['averageX'].values[0]), (fila_jugador['averageY'].values[0]), ax=ax, s=200, color=color, edgecolors='black', linewidth=2.5, zorder=1)
+            ax.text((fila_jugador['averageY'].values[0]),(fila_jugador['averageX'].values[0]), fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=10, zorder=2)
             ax.set_title(f"Posicion promedio del 11 titular de {equipo}", fontsize=14)
+
+    if incluir_sustitutos:
+        for sustituto in sustitutos:
+            fila_sustituto = df_pos_sustitutos[(df_pos_sustitutos['name'] == sustituto)]
+            if not fila_sustituto.empty:
+                pitch.scatter(fila_sustituto['averageX'], fila_sustituto['averageY'], ax=ax, s=200, color=color, edgecolors='black', linewidth=2.5, zorder=1)
+
+    if incluir_al:
+        for jugador in xi_titular_al:
+            fila_jugador = df_posiciones_prom_AL[(df_posiciones_prom_AL['name'] == jugador)]
+            if not fila_jugador.empty: 
+                pitch.scatter(100-(fila_jugador['averageX'].values[0]), 100-(fila_jugador['averageY'].values[0]), ax=ax, s=200, color='darkblue', edgecolors='black', linewidth=2.5, zorder=1)
+                ax.text(100-(fila_jugador['averageY'].values[0]),100- (fila_jugador['averageX'].values[0]), fila_jugador['jerseyNumber'].values[0], color='black', ha='center', va='center', fontsize=10, zorder=2)
+
 
     legend_elements = []
 
@@ -191,25 +243,24 @@ def mostrar_xi_inicial_oponente(id_jornada,df_stats_oponentes,incluir_sustitutos
     plt.tight_layout()
     st.pyplot(fig)
 
-def mostrar_xi_inicial(id_jornada,df_stats_AL,df_stats_oponentes,incluir_sustitutos=False,incluir_oponentes=True):
-    df_filtrado_oponentes = df_stats_oponentes[df_stats_oponentes['substitute']==False]
-    df_posiciones_prom_op = pd.read_excel(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\2024\Posiciones promedio Oponente 2024\Posiciones_Prom_Oponentes_2024.xlsx', sheet_name=id_jornada)
-    df_posiciones_prom_op = df_posiciones_prom_op[df_posiciones_prom_op['name'].isin(df_filtrado_oponentes['name'])]
-    df_posiciones_prom_op.drop(['slug', 'shortName', 'userCount', 'id',  'pointsCount'], axis=1, inplace=True)
+def mostrar_xi_inicial(df_titulares, df_sustitutos, df_posiciones_prom_AL , df_posiciones_prom_op, incluir_sustitutos=False, incluir_oponentes=True):
+    
     orden_posicion = {'G': 0, 'D': 1, 'M': 2, 'F': 3}
-    df_sustitutos = df_stats_AL[df_stats_AL['substitute']==True]
-    df_filtrado_jugadores = df_stats_AL[df_stats_AL['substitute']==False]
-    df_posiciones_prom_AL = pd.read_excel(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\2024\Posiciones promedio AL 2024\Posiciones_Prom_AL_2024.xlsx', sheet_name=id_jornada)
+    
     df_pos_sustitutos = df_posiciones_prom_AL[df_posiciones_prom_AL['name'].isin(df_sustitutos['name'])]
-    df_posiciones_prom = df_posiciones_prom_AL[df_posiciones_prom_AL['name'].isin(df_filtrado_jugadores['name'])]
+    
+    df_posiciones_prom = df_posiciones_prom_AL[df_posiciones_prom_AL['name'].isin(df_titulares['name'])]
     df_posiciones_prom.drop(['slug', 'shortName', 'userCount', 'id', 'firstName', 'lastName', 'pointsCount'], axis=1, inplace=True)
     df_posiciones_prom['orden'] = df_posiciones_prom['position'].map(orden_posicion)
     df_posiciones_prom.sort_values(by='orden', inplace=True)
+    df_posiciones_prom = df_posiciones_prom.merge(df_titulares[['name','minutesPlayed', 'captain']], on='name', how='left')
+
     xi_titular = df_posiciones_prom['name']
     sustitutos = df_pos_sustitutos['name']
     xi_titular_op = df_posiciones_prom_op['name']
 
-    fig, ax = plt.subplots(figsize=(23, 11))
+    # GRAFICAR CANCHA
+    fig, ax = plt.subplots(figsize=(23, 12))
     pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
     pitch.draw(ax=ax)
 
@@ -217,7 +268,7 @@ def mostrar_xi_inicial(id_jornada,df_stats_AL,df_stats_oponentes,incluir_sustitu
         fila_jugador = df_posiciones_prom[(df_posiciones_prom['name'] == jugador)]
         if not fila_jugador.empty:
             posicion = fila_jugador['position'].values[0]
-            color = colores_posicion.get(posicion, 'black')  # Usamos 'black' como color predeterminado si la posición no está en el mapa
+            color = colores_posicion.get(posicion, 'black') 
             pitch.scatter(fila_jugador['averageX'], fila_jugador['averageY'], ax=ax, s=200, color=color, edgecolors='black', linewidth=2.5, zorder=1)
             ax.text(fila_jugador['averageY'].values[0], fila_jugador['averageX'].values[0], fila_jugador['jerseyNumber'].values[0], color='white', ha='center', va='center', fontsize=12, zorder=2)
             ax.set_title(f"Posicion promedio del 11 titular de Alianza Lima", fontsize=14)
@@ -233,11 +284,9 @@ def mostrar_xi_inicial(id_jornada,df_stats_AL,df_stats_oponentes,incluir_sustitu
             if not fila_jugador.empty:
                 posicion = fila_jugador['position'].values[0]
                 equipo = fila_jugador['team'].values[0]
-                color = colores_oponentes.get(equipo, 'black')  # Usamos 'black' como color predeterminado si la posición no está en el mapa
+                color = colores_oponentes.get(equipo, 'black')  
                 pitch.scatter(100-(fila_jugador['averageX'].values[0]), 100-(fila_jugador['averageY'].values[0]), ax=ax, s=200, color=color, edgecolors='black', linewidth=2.5, zorder=1)
                 ax.text(100-(fila_jugador['averageY'].values[0]),100- (fila_jugador['averageX'].values[0]), fila_jugador['jerseyNumber'].values[0], color='black', ha='center', va='center', fontsize=10, zorder=2)
-                ax.set_title(f"Posicion promedio del 11 titular de {equipo}", fontsize=14)
-
 
     legend_elements = []
 
@@ -250,7 +299,7 @@ def mostrar_xi_inicial(id_jornada,df_stats_AL,df_stats_oponentes,incluir_sustitu
     plt.tight_layout()
     st.pyplot(fig)
 
-## ----------------------------- ZONA TEST ---------------------------------------
+## ------------------------------------------------- ZONA TEST ---------------------------------------
 
 def mostrar_grafico(df_estadisticas_partidos,categoria, subcategoria):
     if categoria == "Ataque":
@@ -299,13 +348,6 @@ def mostrar_grafico_ternario(df, equipo):
                              title=f'Gráfico Ternario de Rendimiento - {equipo}')
     st.plotly_chart(fig, use_container_width=True)
 
-colores_posicion = {
-        'G': 'red',
-        'D': 'green',
-        'M': 'purple',
-        'F': 'blue'
-    }
-
 def mostrar_grafico_barras(df):
     orden_posicion = {'G': 0, 'D': 1, 'M': 2, 'F': 3}
     df['orden'] = df['position'].map(orden_posicion)
@@ -327,39 +369,98 @@ def mostrar_grafico_barras(df):
     fig2.update_traces(texttemplate='%{text:.2s}', textposition='inside')
     fig2.update_layout(showlegend=False, xaxis_title='Toques', yaxis_title='Jugador')  # Ocultar leyenda
     st.plotly_chart(fig2, use_container_width=True)
-## ----------------------------- MAIN FUNCTION ---------------------------------
+
+def mostrar_grafico_posesion(df_estadisticas_partido,condicion):
+    df_ball_possession = df_estadisticas_partido[df_estadisticas_partido['Estadistica'] == 'Ball possession']
+    if condicion == "Local":
+        df_pie = pd.melt(df_ball_possession, id_vars=['Estadistica'], value_vars=['Alianza', 'Oponente'],
+                         var_name='Equipo', value_name='Porcentaje')
+    else:
+        df_ball_possession = df_ball_possession[['Estadistica', 'Oponente', 'Alianza']]
+        df_pie = pd.melt(df_ball_possession, id_vars=['Estadistica'], value_vars=['Oponente', 'Alianza'],
+                         var_name='Equipo', value_name='Porcentaje')
+    
+    # Definir colores específicos para cada equipo
+    colors = {'Alianza': 'darkblue', 'Oponente': 'cream'}  
+
+    fig = px.pie(df_pie, values='Porcentaje', names='Equipo', title='Posesión de Balón',
+                 color='Equipo', color_discrete_map=colors)
+    
+    fig.update_layout(width=400, height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+## ------------------------------------------------ MAIN FUNCTION ---------------------------------
 
 def main():
-
-    df_jornadas = pd.read_excel(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\2024\Resumen_Partidos_AL_2024.xlsx')
-    df_stats_AL = pd.read_excel(r'C:\Users\Alvaro\Proyectos\Proyecto Gronestats\GroneStats\Aplicacion Final\2024\Estadisticas_Jugadores_AL_2024.xlsx')
+    # --------------------------------------------- CARGA RESUMEN Y STATS TOTALES AL -------------------------------------
+    df_jornadas = pd.read_excel(r'Aplicacion Final\2024\Resumen_Partidos_AL_2024.xlsx')
+    df_stats_AL = pd.read_excel(r'Aplicacion Final\2024\Estadisticas_Jugadores_AL_2024.xlsx')
 
     configurar_pagina()
+    # --------------------------------------------- BARRA LATERAL ----------------------------------------------------
+    with st.sidebar:
+        torneos = df_jornadas['Torneo'].unique()
+        torneos_seleccionados = st.multiselect("Filtra por torneo: ",torneos,default=torneos)
+        df_torneos_filtrados = df_jornadas[df_jornadas['Torneo'].isin(torneos_seleccionados)]
+        s_goles_al , s_goles_op = st.columns(2)
+        with s_goles_al:
+            min_goles_alianza, max_goles_alianza = st.slider('Goles Alianza Lima', 
+                                                    min_value=int(df_jornadas['Goles Alianza Lima'].min()), 
+                                                    max_value=int(df_jornadas['Goles Alianza Lima'].max()), 
+                                                    value=(int(df_jornadas['Goles Alianza Lima'].min()), int(df_jornadas['Goles Alianza Lima'].max())))
+        with s_goles_op:
+            min_goles_oponente, max_goles_oponente = st.slider('Goles Oponente', 
+                                                    min_value=int(df_jornadas['Goles Oponente'].min()), 
+                                                    max_value=int(df_jornadas['Goles Oponente'].max()), 
+                                                    value=(int(df_jornadas['Goles Oponente'].min()), int(df_jornadas['Goles Oponente'].max())))
+        df_jornadas_filtradas = df_torneos_filtrados[(df_torneos_filtrados['Goles Alianza Lima'] >= min_goles_alianza) & 
+                                    (df_torneos_filtrados['Goles Alianza Lima'] <= max_goles_alianza) & 
+                                    (df_torneos_filtrados['Goles Oponente'] >= min_goles_oponente) & 
+                                    (df_torneos_filtrados['Goles Oponente'] <= max_goles_oponente)]
+        resultados = df_jornadas['Resultado'].unique()
+        resultados_seleccionados = st.multiselect("Filtra por resultado:",resultados,default=resultados)
+        opciones = df_jornadas['Condicion'].unique()
+        localia_seleccionada = st.multiselect("Filtra por localia:", opciones,default=opciones)
+        if resultados_seleccionados and localia_seleccionada:
+            df_jornadas_filtradas = df_jornadas_filtradas[df_jornadas_filtradas['Resultado'].isin(resultados_seleccionados)]
+            df_jornadas_filtradas = df_jornadas_filtradas[df_jornadas_filtradas['Condicion'].isin(localia_seleccionada)]
 
+    ## ----------------------------------------- CUERPO --------------------------------------------------------
+    
     p_resumen , p_equipo , p_jornadas , p_jugadores = st.tabs(["Resumen 2024","Equipo","Jornadas", "Jugadores"])
+    
+    # -------------------------- CARGA DE DATOS TOTALES X TORNEO ----------------------------------
+    t = df_torneos_filtrados['Torneo'].map(torneos_d).values[0]
+    df_stats_totales_torneo = pd.read_excel(f'Aplicacion Final/2024/Datos totales/Datos_totales_{t}_2024.xlsx',sheet_name='total')
+    df_stats_x90_torneo = pd.read_excel(f'Aplicacion Final/2024/Datos totales/Datos_totales_{t}_2024.xlsx',sheet_name='per90')
+    # Obtener datos totales de Alianza para el torneo
+    df_stats_AL_torneo_total = pd.read_excel(f'Aplicacion Final/2024/Datos totales/Datos_totales_Alianza_Lima_{t}_2024.xlsx',sheet_name='total')
+    df_stats_AL_torneo_x90 = pd.read_excel(f'Aplicacion Final/2024/Datos totales/Datos_totales_Alianza_Lima_{t}_2024.xlsx',sheet_name='per90')
+    
     with p_resumen:
-        promedio_goles_alianza = df_jornadas['Goles Alianza Lima'].mean()
-        promedio_goles_oponente = df_jornadas['Goles Oponente'].mean()
+        promedio_goles_alianza = df_torneos_filtrados['Goles Alianza Lima'].mean()
+        promedio_goles_oponente = df_torneos_filtrados['Goles Oponente'].mean()
         
         st.write("Promedio de Goles A favor:", promedio_goles_alianza)
         st.write("Promedio de Goles Recibidos:", promedio_goles_oponente)
+        st.dataframe(df_stats_AL_torneo_total)
+        st.dataframe(df_stats_AL_torneo_x90)
+        st.dataframe(df_stats_totales_torneo)
+        st.dataframe(df_stats_x90_torneo)
 
 
     with p_jornadas:
-
-        p_torneos , p_jornadas = st.columns(2)
-        with p_torneos:
-            torneos = df_jornadas['Torneo'].unique()
-            torneos_seleccionados = st.multiselect("Elegir torneo: ",torneos,default=torneos)
-        with p_jornadas:
-            if torneos_seleccionados:
-                df_jornadas = df_jornadas[df_jornadas['Torneo'].isin(torneos_seleccionados)]
-            jornada_seleccionada = st.selectbox('Selecciona una jornada:', df_jornadas['nombre'], key='jornada_selector')
-            jornada_filtrada = df_jornadas[df_jornadas['nombre'] == jornada_seleccionada]
         
+        jornada_seleccionada = st.selectbox('Selecciona una jornada:', df_jornadas_filtradas['nombre'], key='jornada_selector')
+        jornada_filtrada = df_jornadas_filtradas[df_jornadas_filtradas['nombre'] == jornada_seleccionada]
+        
+        ## DATOS DE RESUMEN
         # id_jornada, nombre, condicion, equipo oponente, torneo, goles alianza lima, goles oponente
         # resultado, dt alianza lima, dt oponente , puntos obtenidos , puntos acumulados
+        # Posicion resultante, Importancia,	Puntos1,	Puntos2,	PuntosDif1,	PuntosDif2,	Puntos jugados
         id_jornada = jornada_filtrada['id_jornada'].values[0]
+        ## ID JORNADA ENCONTRADO
         nombre_jornada = jornada_filtrada['nombre'].values[0]
         equipo_oponente = jornada_filtrada['Equipo Oponente'].values[0]
         condicion = jornada_filtrada['Condicion'].values[0]
@@ -371,63 +472,80 @@ def main():
         dt_oponente = jornada_filtrada['DT Oponente'].values[0]
         puntos_obtenidos = jornada_filtrada['Puntos obtenidos'].values[0]
         puntos_acumulados = jornada_filtrada['Puntos acumulados'].values[0]
+        
+        # -------------------------------------- CARGA DE DATOS X JORNADA ------------------------------------------
 
-        # Obtener stats de jugadores oponentes
-        df_stats_oponentes = pd.read_csv(f'Aplicacion Final/2024/Estadisticas Oponentes 2024/{id_jornada}_stats_jugadores_op.csv')
         # Obtener stats de jugadores de Alianza
         df_stats_AL = df_stats_AL[df_stats_AL['Jornada'] == nombre_jornada]
-        # Obtener stats del partido
-        df_estadisticas_partidos = pd.read_excel(r'Aplicacion Final\2024\Estadisticas_Partidos_AL_2024.xlsx', sheet_name=id_jornada)
+        # Obtener stats de jugadores del equipo oponente
+        df_stats_oponente = pd.read_csv(f'Aplicacion Final/2024/Estadisticas Oponentes 2024/{id_jornada}_stats_jugadores_op.csv')
+        # Obtener stats del partido de la jornada
+        df_estadisticas_partido = pd.read_excel(r'Aplicacion Final\2024\Estadisticas_Partidos_AL_2024.xlsx', sheet_name=id_jornada)
+        # Obtener posicion promedio de Alianza para la jornada
+        df_posiciones_prom_AL = pd.read_excel(r'Aplicacion Final\2024\Posiciones promedio AL 2024\Posiciones_Prom_AL_2024.xlsx', sheet_name=id_jornada)
+        # Obtener posicion promedio del oponente de la jornada
+        df_posiciones_prom_op = pd.read_excel(r'Aplicacion Final\2024\Posiciones promedio Oponente 2024\Posiciones_Prom_Oponentes_2024.xlsx', sheet_name=id_jornada)
+        # Obtener mapas de tiro para la jornada
+        df_shotmaps = pd.read_excel(r'Aplicacion Final\2024\Mapas de tiro AL 2024\MapaTiros_2024.xlsx', sheet_name=id_jornada)
+
+        # ---------------------------------------------------------------------------------------------
+        st.title(f"**Resultado de {condicion}:** {resultado} | {goles_alianza_lima} - {goles_oponente}")
+        # XI INICIAL AL
+        df_titulares = df_stats_AL[df_stats_AL['substitute']==False]
+        df_sustitutos = df_stats_AL[df_stats_AL['substitute']==True]
+        # XI INICIAL Oponente
+        df_titulares_oponente = df_stats_oponente[df_stats_oponente['substitute']==False]
+        df_sustitutos_oponente = df_stats_oponente[df_stats_oponente['substitute']==True]
+
+        df_posprom_titulares_AL = df_posiciones_prom_AL[df_posiciones_prom_AL['name'].isin(df_titulares['name'])]
+        df_posprom_titulares_OP = df_posiciones_prom_op[df_posiciones_prom_op['name'].isin(df_titulares_oponente['name'])]
 
         col1 , col2 , col3 , col4, col5 = st.columns(5)
         with col1:
-            imprimir_escudo_AL()
-            st.markdown(f"**Resultado de {condicion}:** {resultado} | {goles_alianza_lima} - {goles_oponente}")
+            imprimir_escudo_AL() 
             st.write('DT: ', dt_alianza_lima)
-
+            # CHECKBOXES
             sustitutos = st.checkbox('Incluir sustitutos', value=False)
             check_oponentes = st.checkbox('Incluir oponentes', value=True)
-
-            mostrar_xi_inicial(id_jornada, df_stats_AL, df_stats_oponentes, incluir_sustitutos=sustitutos, incluir_oponentes=check_oponentes)
+            mostrar_xi_inicial(df_titulares,df_sustitutos ,df_posiciones_prom_AL , df_posprom_titulares_OP, incluir_sustitutos=sustitutos, incluir_oponentes=check_oponentes)            
+            # GRAFICOS DE MINUTOS, TOQUES Y POSESION PERDIDA
+            grafico_mtp = df_titulares[['shortName','position','minutesPlayed','touches','possessionLostCtrl']]
+            mostrar_grafico_barras(grafico_mtp)
+            # ------
             
-            df_titulares = df_stats_AL[df_stats_AL['substitute']==False]
-            minutos_toques = df_titulares[['shortName','position','minutesPlayed','touches']]
-            mostrar_grafico_barras(minutos_toques)
-
-            st.dataframe(df_stats_AL)
         with col2:
             imprimir_escudo_oponente(equipo_oponente,torneos_seleccionados)
             st.write('DT: ', dt_oponente)
+            # CHECKBOXES
             sustitutos_op = st.checkbox('Incluir sustitutos op.', value=False)
-            check_oponentes = st.checkbox('Incluir jugadores AL', value=False)
-            mostrar_xi_inicial_oponente(id_jornada,df_stats_oponentes,incluir_sustitutos=sustitutos_op)
-
-            df_titulares_oponentes = df_stats_oponentes[df_stats_oponentes['substitute']==False]
-            minutos_toques_op = df_titulares_oponentes[['shortName','position','minutesPlayed','touches']]
-            mostrar_grafico_barras(minutos_toques_op)
-
-            st.dataframe(df_stats_oponentes)
-        with col3:
-            df_ball_possession = df_estadisticas_partidos[df_estadisticas_partidos['Estadistica'] == 'Ball possession']
-            df_pie = pd.melt(df_ball_possession, id_vars=['Estadistica'], value_vars=['Alianza', 'Oponente'],
-                var_name='Equipo', value_name='Porcentaje')
-            fig = px.pie(df_pie, values='Porcentaje', names='Equipo', title='Posesión de Balón',
-                        color_discrete_sequence=px.colors.qualitative.Set3)
-            fig.update_layout(width=400, height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        with col4:
+            check_al = st.checkbox('Incluir jugadores AL', value=False)
+            mostrar_xi_inicial_oponente(df_titulares_oponente,df_sustitutos_oponente,df_posiciones_prom_op, df_posprom_titulares_AL, incluir_sustitutos=sustitutos_op, incluir_al=check_al)
+            # GRAFICOS DE MINUTOS, TOQUES Y POSESION PERDIDA
+            grafico_mtp_op = df_titulares_oponente[['shortName','position','minutesPlayed','touches']]
+            mostrar_grafico_barras(grafico_mtp_op)
+            # ------
             
-            categoria = st.selectbox("Selecciona una categoría", ["Ataque", "Defensa", "Portero", "Juego General"])
-            subcategoria = st.selectbox("Selecciona una subcategoría", ["Creación de Oportunidades", "Remates", "Desbordes y Centros"] if categoria == "Ataque" else 
+        with col3:
+            # GRAFICO DE POSESION DE BALON 
+            mostrar_grafico_posesion(df_estadisticas_partido,condicion)
+
+            st.dataframe(df_stats_AL)
+            st.dataframe(df_stats_oponente)
+        with col4:
+            st.subheader("Estadisticas del Partido")
+            # SELECTBOX CATEGORIAS DE JUEGO
+            categoria = st.selectbox("Selecciona una categoría", ["Ataque", "Defensa", "Portero", "Creacion de Chances","Juego General", "Balon parado"])
+            subcategoria = st.selectbox("Selecciona una subcategoría", ["Remates", "Desbordes y Centros"] if categoria == "Ataque" else 
+                                                    ["Creación de Oportunidades"] if categoria == "Creacion de Chances" else
+                                                    ["Faltas","Tiros de esquina","Tiros Libres","Otros"]
                                                     ["Recuperación de Balón", "Despejes", "Duelos"] if categoria == "Defensa" else 
                                                     ["Portero"] if categoria == "Portero" else ["Juego General"])
-            mostrar_grafico(df_estadisticas_partidos,categoria, subcategoria)
+            mostrar_grafico(df_estadisticas_partido,categoria, subcategoria)
         with col5:
             st.subheader("Rendimiento - Alianza Lima")
-            
-            df_rendimiento = calcular_rendimiento(df_estadisticas_partidos)
-            st.dataframe(df_rendimiento)
+            df_rendimiento = calcular_rendimiento(df_estadisticas_partido)
             mostrar_grafico_ternario(df_rendimiento, 'Alianza')
+            st.dataframe(df_shotmaps)
             
         
 if __name__ == "__main__":
