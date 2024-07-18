@@ -441,20 +441,20 @@ def mostrar_grafico_posesion(df_estadisticas_partido,condicion):
 def graficar_tiros_al_arco(df_shots_on_target):
     df_coordenadas = df_shots_on_target['goalMouthCoordinates'].reset_index(drop=True)
     dict_list = [eval(coord) for coord in df_coordenadas.tolist()]
-    df_goalzone_AL = pd.DataFrame(dict_list)
-    df_goalzone_AL['shotType'] = df_shots_on_target['shotType'].values
-    df_goalzone_AL['situation'] = df_shots_on_target['situation'].values
-    df_goalzone_AL['jerseyNumber'] = df_shots_on_target['jerseyNumber'].values
-    df_goalzone_AL['bodyPart'] = df_shots_on_target['bodyPart'].values
-    df_goalzone_AL['goalMouthLocation'] = df_shots_on_target['goalMouthLocation'].values
-    df_goalzone_AL['time'] = df_shots_on_target['time'].values
-    df_goalzone_AL['shortName'] = df_shots_on_target['shortName'].values
-    df_goalzone_AL['position'] = df_shots_on_target['position'].values
-    df_goalzone_AL['color'] = df_shots_on_target['color'].values
+    df_goalzone = pd.DataFrame(dict_list)
+    df_goalzone['shotType'] = df_shots_on_target['shotType'].values
+    df_goalzone['situation'] = df_shots_on_target['situation'].values
+    df_goalzone['jerseyNumber'] = df_shots_on_target['jerseyNumber'].values
+    df_goalzone['bodyPart'] = df_shots_on_target['bodyPart'].values
+    df_goalzone['goalMouthLocation'] = df_shots_on_target['goalMouthLocation'].values
+    df_goalzone['time'] = df_shots_on_target['time'].values
+    df_goalzone['shortName'] = df_shots_on_target['shortName'].values
+    df_goalzone['position'] = df_shots_on_target['position'].values
+    df_goalzone['color'] = df_shots_on_target['color'].values
     if 'goalType' in df_shots_on_target.columns:
-        df_goalzone_AL['goalType'] = df_shots_on_target['goalType'].values
+        df_goalzone['goalType'] = df_shots_on_target['goalType'].values
 
-    fig = px.scatter(df_goalzone_AL, x='y', y='z', title='Ubicación de tiros a puerta', labels={'y': 'y', 'z': 'z'}, color='color',
+    fig = px.scatter(df_goalzone, x='y', y='z', title='Ubicación de tiros a puerta', labels={'y': 'y', 'z': ' '}, color='color',
                      color_discrete_map={'darkgreen': 'darkgreen', 'darkgoldenrod': 'darkgoldenrod', 'coral': 'coral', 'darkred': 'darkred'},
                      hover_data={'shortName': True, 'jerseyNumber': True, 'shotType': True, 'time': True, 'situation': True, 'bodyPart': True, 'goalMouthLocation': True, 
                                  'y': False, 'z': False, 'color': False})
@@ -465,13 +465,13 @@ def graficar_tiros_al_arco(df_shots_on_target):
     fig.add_shape(type="line", x0=54.5, y0=0, x1=54.5, y1=35.5, line=dict(color="Black", width=5))
     fig.add_shape(type="line", x0=45.4, y0=35.5, x1=54.5, y1=35.5, line=dict(color="Black", width=5))
 
-    fig.update_xaxes(showgrid=False, visible=False)
-    fig.update_yaxes(showgrid=False, visible=False)
+    fig.update_xaxes(showgrid=False, visible=False, showticklabels=False, ticks = "")
+    fig.update_yaxes(showgrid=False, visible=True, showticklabels=False, ticks = "")
 
     fig.update_layout(showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
-def graficar_posicion_tiros_a_puerta(df_shots_on_target,team):
+def graficar_posicion_tiros_a_puerta(df_shots_on_target):
     pitch = VerticalPitch(
         pitch_type='opta',
         pitch_color='grass',
@@ -503,19 +503,9 @@ def graficar_posicion_tiros_a_puerta(df_shots_on_target,team):
     plt.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), frameon=False, fontsize=12)
     plt.tight_layout()
     st.pyplot(fig, use_container_width=True)
-    buf = BytesIO()
-    fig.savefig(buf, format='png')
-    buf.seek(0)
+    return fig
 
-    # Crea un botón de descarga en Streamlit
-    st.download_button(
-        label=f"Descarga el mapa de tiros a puerta {team} (dona en el QR porfa)",
-        data=buf,
-        file_name=f"Tiros a puerta.png",
-        mime="image/png",
-    )
-
-def graficar_tiros_fuera(df_shots_off_target,team):
+def graficar_tiros_fuera(df_shots_off_target):
     pitch = VerticalPitch(
         pitch_type='opta',
         pitch_color='grass',
@@ -546,17 +536,7 @@ def graficar_tiros_fuera(df_shots_off_target,team):
     plt.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), frameon=False, fontsize=12)    
     plt.tight_layout()
     st.pyplot(fig, use_container_width=True)
-    buf = BytesIO()
-    fig.savefig(buf, format='png')
-    buf.seek(0)
-
-    # Crea un botón de descarga en Streamlit
-    st.download_button(
-        label=f"Descarga el mapa de tiros fuera {team} (dona en el QR porfa)",
-        data=buf,
-        file_name=f"Tiros fuera.png",
-        mime="image/png"
-    )
+    return fig
 
 
 ## ------------------------------------------------------DATA PROCCESING-------------------------------------
@@ -741,7 +721,7 @@ def main():
 
     ## ----------------------------------------- GENERAL TABS --------------------------------------------------------
     
-    p_resumen , p_equipo , p_jornadas , p_jugadores = st.tabs(["Resumen 2024","Equipo","Jornadas", "Jugadores"])
+    p_resumen , p_jornadas , p_equipo , p_jugadores = st.tabs(["Resumen 2024","Jornadas", "Equipo","Jugadores"])
     
     # -------------------------- CARGA DE DATOS TOTALES X TORNEO ----------------------------------
     t = df_torneos_filtrados['Torneo'].map(torneos_d).values[0]
@@ -868,7 +848,7 @@ def main():
         df_stats_match = df_estadisticas_partido.set_index(df_estadisticas_partido.columns[0]).T
         yellow_cards_AL, yellow_cards_Op = df_stats_match['Yellow cards'].values[:2]
 
-        col1 , col2 ,col3  = st.columns([3,3,2])
+        col1 , col2 ,col3, col4  = st.columns([3.5,3.5,3,2])
         with col1:
             imprimir_escudo_AL() 
             st.write('DT: ', dt_alianza_lima)
@@ -886,7 +866,7 @@ def main():
             sustitutos_op = st.checkbox(f'Incluir sustitutos {equipo_oponente}', value=False)
             mostrar_xi_inicial_oponente(df_titulares_oponente,df_sustitutos_oponente,df_posiciones_prom_op, df_posprom_titulares_AL, incluir_sustitutos=sustitutos_op, incluir_al=check_al, incluir_voronoi=check_voronoi_op)
             # GRAFICOS DE TARJETAS Y SUSTITUTOS
-            df_substituidos_AL, df_sustitutos_AL, df_substituidos_op, df_sustitutos_op = procesar_tarjetas_rojas(df_stats_match,df_stats_AL,df_stats_oponente,col3)            
+            df_substituidos_AL, df_sustitutos_AL, df_substituidos_op, df_sustitutos_op = procesar_tarjetas_rojas(df_stats_match,df_stats_AL,df_stats_oponente,col4)          
             with col1:          
                 st.write(f'Tarjetas amarillas: {int(yellow_cards_AL)}')
                 st.write(f'Alianza Lima hizo {len(df_sustitutos_AL)} cambios')
@@ -897,6 +877,7 @@ def main():
                 # GRAFICOS DE MINUTOS, TOQUES Y POSESION PERDIDA
                 grafico_mtp = df_stats_AL[['shortName','position','minutesPlayed','touches','possessionLostCtrl']]
                 mostrar_grafico_barras(grafico_mtp)
+                
             with col2:
                 st.write(f'Tarjetas amarillas: {int(yellow_cards_Op)}')
                 st.write(f'{equipo_oponente} hizo {len(df_sustitutos_op)} cambios')
@@ -907,25 +888,12 @@ def main():
                 # GRAFICOS DE MINUTOS, TOQUES Y POSESION PERDIDA
                 grafico_mtp_op = df_stats_oponente[['shortName','position','minutesPlayed','touches','possessionLostCtrl']]
                 mostrar_grafico_barras(grafico_mtp_op)
-
+                
         with col3:
-            st.subheader("Estadisticas del encuentro")
             # MATCH MOMENTUM
             momentum = obtener_grafico_match_momentum(df_momentum,es_local)
             st.plotly_chart(momentum, use_container_width=True)
-
-            # GRAFICO DE POSESION DEL BALON
-            mostrar_grafico_posesion(df_estadisticas_partido, condicion)
-            
-            # SELECTBOX CATEGORIAS DE JUEGO
-            categoria = st.selectbox("Selecciona una categoría", ["Ataque", "Defensa", "Portero", "Creacion de Chances","Juego General", "Balon parado"])
-            subcategoria = st.selectbox("Selecciona una subcategoría", ["Remates", "Desbordes y Centros"] if categoria == "Ataque" else 
-                                                    ["Creación de Oportunidades"] if categoria == "Creacion de Chances" else
-                                                    ["Faltas","Tiros de esquina","Tiros Libres","Otros"]
-                                                    ["Recuperación de Balón", "Despejes", "Duelos"] if categoria == "Defensa" else 
-                                                    ["Portero"] if categoria == "Portero" else ["Juego General"])
-            mostrar_grafico(df_estadisticas_partido,categoria, subcategoria)
-
+            # SCATTER PLOT
             df_stats_AL['team'] = 'Alianza Lima'
             df_stats_oponente['team'] = equipo_oponente
             df_combined = pd.concat([df_stats_AL, df_stats_oponente])
@@ -942,28 +910,46 @@ def main():
             fig.update_yaxes(categoryorder='total ascending', tickmode='linear')
 
             st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(df_combined)
 
+
+        with col4:
+            st.subheader("Estadisticas del encuentro")
             
+
+            # GRAFICO DE POSESION DEL BALON
+            mostrar_grafico_posesion(df_estadisticas_partido, condicion)
+            
+            # SELECTBOX CATEGORIAS DE JUEGO
+            categoria = st.selectbox("Selecciona una categoría", ["Ataque", "Defensa", "Portero", "Creacion de Chances","Juego General", "Balon parado"])
+            subcategoria = st.selectbox("Selecciona una subcategoría", ["Remates", "Desbordes y Centros"] if categoria == "Ataque" else 
+                                                    ["Creación de Oportunidades"] if categoria == "Creacion de Chances" else
+                                                    ["Faltas","Tiros de esquina","Tiros Libres","Otros"]
+                                                    ["Recuperación de Balón", "Despejes", "Duelos"] if categoria == "Defensa" else 
+                                                    ["Portero"] if categoria == "Portero" else ["Juego General"])
+            mostrar_grafico(df_estadisticas_partido,categoria, subcategoria)
             #df_rendimiento = calcular_rendimiento(df_estadisticas_partido)
             #mostrar_grafico_ternario(df_rendimiento, 'Alianza')
-            st.dataframe(df_combined)
 
 
         st.divider()
         ## SOLO TIROS Y CREACION DE OPORTUNIDADES
         col1 , col2 ,col3  = st.columns([3,3,2])
         with col1:
-            st.subheader(f"Tiros a puerta - Alianza Lima")
+            st.subheader(f"Alianza Lima")
             graficar_tiros_al_arco(df_shots_on_target_AL)
-            graficar_posicion_tiros_a_puerta(df_shots_on_target_AL, 'Alianza Lima')
+            fig_tiros_puerta_AL = graficar_posicion_tiros_a_puerta(df_shots_on_target_AL)
+            st.divider()
             st.subheader(f"Tiros fuera - Alianza Lima")
-            graficar_tiros_fuera(df_shots_off_target_AL, 'Alianza Lima')
+            graficar_tiros_fuera(df_shots_off_target_AL)
         with col2:
-            st.subheader(f"Tiros a puerta - {equipo_oponente}")
+            st.subheader(f"{equipo_oponente}")
             graficar_tiros_al_arco(df_shots_on_target_Oponente)
-            graficar_posicion_tiros_a_puerta(df_shots_on_target_Oponente, equipo_oponente)
+            fig_tiros_puerta_op = graficar_posicion_tiros_a_puerta(df_shots_on_target_Oponente)
+            st.divider()
             st.subheader(f"Tiros fuera - {equipo_oponente}")
-            graficar_tiros_fuera(df_shots_off_target_Oponente, equipo_oponente)
+            graficar_tiros_fuera(df_shots_off_target_Oponente)
+
             
                     
         
