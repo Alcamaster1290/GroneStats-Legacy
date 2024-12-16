@@ -897,7 +897,7 @@ def main():
             df_stats_AL['team'] = 'Alianza Lima'
             df_stats_oponente['team'] = equipo_oponente
             df_combined = pd.concat([df_stats_AL, df_stats_oponente])
-            df_combined = df_combined[df_combined['minutesPlayed']>3]
+            df_combined = df_combined[(df_combined['totalPass']>3)&(df_combined['substitute']==False)]
             df_combined = df_combined.sort_values(by='position').reset_index(drop=True)
             df_combined['accPasses'] = (df_combined['accuratePass'] / df_combined['totalPass']) * 100
             fig = px.scatter(df_combined, x='accPasses', y='team', color='team',
@@ -906,8 +906,8 @@ def main():
                  labels={'accPasses': 'Porcentaje de Pases Precisos', 'team': 'Equipos'},
                  range_x=[30, 100], orientation='h')
 
-            fig.update_layout(showlegend=False, height = 300)
-            fig.update_yaxes(categoryorder='total ascending', tickmode='linear')
+            fig.update_layout(showlegend=False, height=300)
+            fig.update_yaxes(categoryorder='total ascending', tickmode='linear', showticklabels=False)
 
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(df_combined)
@@ -928,6 +928,7 @@ def main():
                                                     ["Recuperación de Balón", "Despejes", "Duelos"] if categoria == "Defensa" else 
                                                     ["Portero"] if categoria == "Portero" else ["Juego General"])
             mostrar_grafico(df_estadisticas_partido,categoria, subcategoria)
+            st.dataframe(df_estadisticas_partido)
             #df_rendimiento = calcular_rendimiento(df_estadisticas_partido)
             #mostrar_grafico_ternario(df_rendimiento, 'Alianza')
 

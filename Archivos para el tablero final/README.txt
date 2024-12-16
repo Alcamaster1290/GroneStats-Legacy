@@ -29,8 +29,7 @@ Se utiliza de tabla maestra Jugadores, con clave en la columna Jugador.
 df_jugadores = ALIANZA LIMA 2024.xlsx
 df_datos = Resumen_AL_Jugadores.xlsx
 
-Pendientes de procesar
-"substitute" -> Sustituto BOOL -> Procesar para tener a los 11 titulares
+Agrupacion de estadisticas
 -----
 Concentración (para todos los jugadores):
 ["fouls"; "Faltas"]
@@ -173,8 +172,8 @@ VLI; Volante izquierdo ; M ; 0 } 	     -> ["aerialLost";"Duelos Aereos perdidos"
 						["totalContest"; "Regates totales"]
 						["wonContest"; "Regates con éxito"]
 						["keyPass"; "Pases clave"]
-{ EXI; Extremo izquierdo ; M ; F
-EXD; Extremo derecho; M ; F }	     -> ["totalCross"; "Centros totales"]
+{ EXI; Extremo izquierdo ; F ; M
+EXD; Extremo derecho; F ; M }	     -> ["totalCross"; "Centros totales"]
 				   	["accurateCross; "Centros precisos"]
 					["shotOffTarget"; "Tiros fuera"]
 					["onTargetScoringAttempt"; "Tiro al arco"]
