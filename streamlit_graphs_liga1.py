@@ -1,32 +1,65 @@
+import streamlit as st
 import plotly.graph_objects as go
 
-def crear_grafico_indicador(home_score, away_score, pain_points):
+def crear_grafico_indicador(selected_score, opponent_score, team_name, opponent, pain_points):
     """
-    Crea un gráfico indicador utilizando Plotly.
+    Crea un gráfico indicador utilizando Plotly y muestra los pain points en un indicador central con colores dinámicos.
     """
+    # Mapeo de color según el valor de 'pain_points'
+    color_map = {
+        0: "green",
+        1: "darkgreen",
+        2: "yellowgreen",
+        3: "orange",
+        4: "orangered",
+        5: "darkred"
+    }
+
+    # Obtener el color correspondiente al valor de pain_points
+    color = color_map.get(pain_points, "gray")
+    
+    # Configuración de columnas en Streamlit
+    col1, col2, col3 = st.columns(3)
+
+    # Crear el gráfico indicador
     fig = go.Figure()
 
-    fig.add_trace(go.Indicator(
-        mode="number+delta",
-        value=home_score,
-        title={"text": "Goles Local"},
-        delta={'reference': away_score},
-        domain={'x': [0, 0.5], 'y': [0, 1]}
-    ))
+    # Indicador para los goles del equipo (col1)
+    with col1:
+        fig.add_trace(go.Indicator(
+            mode="number",
+            value=selected_score,
+            title={"text": f"{team_name}"},
+            domain={'x': [0, 0.33], 'y': [0, 1]}  # Ajustar la columna a la izquierda
+        ))
 
-    fig.add_trace(go.Indicator(
-        mode="number+delta",
-        value=pain_points,
-        title={"text": "Puntos de Dolor"},
-        delta={'reference': 0},
-        domain={'x': [0.5, 1], 'y': [0, 1]}
-    ))
+    # Indicador para los goles del oponente (col3)
+    with col3:
+        fig.add_trace(go.Indicator(
+            mode="number",
+            value=opponent_score,
+            title={"text": f"{opponent}"},
+            domain={'x': [0.67, 1], 'y': [0, 1]}  # Ajustar la columna a la derecha
+        ))
+
+    # Indicador de Pain Points en el centro (col2) con cambio de color
+    with col2:
+        fig.add_trace(go.Indicator(
+            mode="number",
+            value=pain_points,
+            title={"text": "IMPORTANCIA"},
+            domain={'x': [0, 1], 'y': [0, 1]},
+            number={'font': {'size': 30, 'color': color}}  # Cambiar el color basado en los pain_points
+        ))
 
     fig.update_layout(
-        grid={'rows': 1, 'columns': 2, 'pattern': "independent"},
-        template={"data": {"indicator": [{"title": {"text": "Score"}}]}}
-    )
+            width=1000,  # Ancho en píxeles
+            height=230  # Alto en píxeles
+        )
+    
     return fig
+
+
 
 def generar_figura_pain_points(matches_for_team_tournament, selected_team, selected_tournament, selected_year):
     """Genera la figura de Pain Points vs Número de Ronda."""
@@ -80,7 +113,7 @@ def generar_figura_resultados(matches_for_team_tournament):
         template="plotly_dark",
         plot_bgcolor="rgb(50, 50, 50)",
         font=dict(color="white"),
-        hovermode="closest"
+        hovermode="closest",
     )
     return fig2
 
