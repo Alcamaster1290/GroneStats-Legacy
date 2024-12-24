@@ -172,15 +172,24 @@ with tabs[1]:
             team_stats = match_sheet_data[match_sheet_data['teamName'] == selected_team]
             opponent_stats = match_sheet_data[match_sheet_data['teamName'] == opponent_team]
             
+            players_stats = team_stats[(team_stats['minutesPlayed'] > 0)]
+            selected_titulares = players_stats[players_stats['substitute'] == False]
+            selected_ins = players_stats[players_stats['substitute'] == True]
+            selected_outs = selected_titulares[(selected_titulares['minutesPlayed'] < 90)]
+
             # Crear columnas para mostrar los datos
             col1, col2 = st.columns(2)
             
             with col1:
-                st.subheader(f"{selected_team}")
-                st.dataframe(team_stats)
+                st.subheader(f"Equipo titular {selected_team}")
+                st.dataframe(selected_titulares)
+                st.subheader(f"Ingresos")
+                st.dataframe(selected_ins)
+                st.subheader(f"Reemplazados")
+                st.dataframe(selected_outs)
 
             with col2:
-                st.subheader(f"{opponent_team}")
+                st.subheader(f"Equipo titular {opponent_team}")
                 st.dataframe(opponent_stats)
                 
         else:

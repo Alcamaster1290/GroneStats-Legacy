@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 
 def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
     """
-    Crea un gráfico indicador utilizando Plotly y muestra los pain points en un indicador central con colores dinámicos.
+    Crea un gráfico indicador utilizando Plotly y muestra los pain points en un indicador central tipo gauge.
     """
     # Mapeo de color según el valor de 'pain_points'
     color_map = {
@@ -14,10 +14,21 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
         4: "orangered",
         5: "darkred"
     }
+    
+    indicator_map = {
+        0: "Sin presión",
+        1: "Equipo de altura de local",
+        2: "Ambos equipos de altura",
+        3: "Equipo de altura de visitante",
+        4: "Candidato al título en altura",
+        5: "Duelo decisivo entre candidatos al título"
+    }
 
     # Obtener el color correspondiente al valor de pain_points
     color = color_map.get(pain_points, "gray")
-    
+    text = indicator_map.get(pain_points)
+
+
     # Configuración de columnas en Streamlit
     col1, col2, col3 = st.columns(3)
 
@@ -42,20 +53,36 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
             domain={'x': [0.67, 1], 'y': [0, 1]}  # Ajustar la columna a la derecha
         ))
 
-    # Indicador de Pain Points en el centro (col2) con cambio de color
+    # Indicador de Pain Points en el centro con gauge (col2) y color dinámico
     with col2:
         fig.add_trace(go.Indicator(
-            mode="number",
+            mode="gauge+number",
             value=pain_points,
-            title={"text": "IMPORTANCIA"},
-            domain={'x': [0, 1], 'y': [0, 1]},
-            number={'font': {'size': 30, 'color': color}}  # Cambiar el color basado en los pain_points
+            title={"text": text},
+            domain={'x': [0.34, 0.66], 'y': [0, 1]},
+            gauge={
+                'axis': {'range': [0, 5]},  # Definir el rango de la escala de 0 a 5
+                'bar': {'color': 'darkblue'},  # Color del indicador
+                'steps': [
+                    {'range': [0, 1], 'color': 'green'},
+                    {'range': [1, 2], 'color': 'darkgreen'},
+                    {'range': [2, 3], 'color': 'yellow'},
+                    {'range': [3, 4], 'color': 'orangered'},
+                    {'range': [4, 5], 'color': 'darkred'}
+                ],
+                'threshold': {
+                    'line': {'color': 'black', 'width': 4},
+                    'thickness': 0.75,
+                    'value': pain_points
+                }
+            },
+            number={'font': {'size': 30, 'color': color}}  # Cambiar el color del texto
         ))
 
     fig.update_layout(
-            width=1000,  # Ancho en píxeles
-            height=230  # Alto en píxeles
-        )
+        width=1000,  # Ancho en píxeles
+        height=300  # Alto en píxeles (mayor para el gauge)
+    )
     
     return fig
 
