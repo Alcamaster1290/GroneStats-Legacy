@@ -16,6 +16,12 @@ from streamlit_graphs_liga1 import (
     imprimir_tarjetas
 )
 
+st.set_page_config(
+        page_title="GRONESTATS by AlvaroCC",
+        layout='centered',
+        page_icon=r'GRONESTATS 1.0\AL.png',
+        initial_sidebar_state="expanded")
+
 # =======================
 # Título de la aplicación
 # =======================

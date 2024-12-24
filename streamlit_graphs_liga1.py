@@ -66,7 +66,7 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
                 'steps': [
                     {'range': [0, 1], 'color': 'green'},
                     {'range': [1, 2], 'color': 'darkgreen'},
-                    {'range': [2, 3], 'color': 'yellow'},
+                    {'range': [2, 3], 'color': 'goldenrod'},
                     {'range': [3, 4], 'color': 'orangered'},
                     {'range': [4, 5], 'color': 'darkred'}
                 ],
@@ -81,7 +81,7 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
 
     fig.update_layout(
         width=1000,  # Ancho en píxeles
-        height=300  # Alto en píxeles (mayor para el gauge)
+        height=250  # Alto en píxeles (mayor para el gauge)
     )
     
     return fig
