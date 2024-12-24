@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 
-def crear_grafico_indicador(selected_score, opponent_score, team_name, opponent, pain_points):
+def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
     """
     Crea un gráfico indicador utilizando Plotly y muestra los pain points en un indicador central con colores dinámicos.
     """
@@ -117,3 +117,56 @@ def generar_figura_resultados(matches_for_team_tournament):
     )
     return fig2
 
+def imprimir_tarjetas(match_details, selected_team):
+    """
+    Función para imprimir las tarjetas de Streamlit en dos columnas.
+
+    Parámetros:
+    - match_details (dict): Diccionario con los detalles del partido seleccionado.
+    - selected_team (str): Nombre del equipo seleccionado.
+    """
+    # Crear dos columnas
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown(
+            f"""
+            <div style="
+                display: flex; 
+                align-items: left; 
+                justify-content: center; 
+                border: 1px solid #444; 
+                border-radius: 8px; 
+                padding: 10px 20px; 
+                background-color: transparent; 
+                color: #eee; 
+                margin-top: 20px; 
+                box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.6);"
+            >
+                <h2 style="font-size: 18px; margin: 0; color: #bbb;">{selected_team} en condición de {match_details['condicion_selected']}</h2>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            f"""
+            <div style="
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                border: 1px solid #444; 
+                border-radius: 8px; 
+                padding: 10px 20px; 
+                background-color: transparent; 
+                color: {match_details['color_texto']}; 
+                margin-top: 20px; 
+                box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.6);"
+            >
+                <h2 style="font-size: 18px; margin: 0; color: {match_details['color_texto']};">Resultado: </h2>
+                <p style="font-size: 18px; font-weight: bold; margin: 0; color: {match_details['color_texto']};">{match_details['resultado_selected']}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )

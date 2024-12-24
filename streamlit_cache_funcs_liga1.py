@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 import streamlit as st
+import os
 
 @st.cache_data
 def load_data():
@@ -69,3 +70,80 @@ def get_match_details(matches_for_team_tournament, round_number, home_id, away_i
         (matches_for_team_tournament['away_id'] == away_id)
     ]
     return match_details
+
+
+def get_match_details(selected_match, selected_team):
+    """
+    Obtiene detalles del partido seleccionado y genera la información necesaria para renderizar en Streamlit.
+
+    Parameters:
+        selected_match (pd.Series): Información del partido seleccionado.
+        selected_team (str): Nombre del equipo seleccionado.
+
+    Returns:
+        dict: Diccionario con los datos del partido, incluyendo condición, resultado, colores y más.
+    """
+    match_id = selected_match['match_id']
+    round_number = selected_match['round_number']
+    home_id = selected_match['home_id']
+    away_id = selected_match['away_id']
+    home_score = selected_match['home_score']
+    away_score = selected_match['away_score']
+    pain_points = selected_match['pain_points']
+
+    # Determinar la condición del equipo seleccionado
+    if selected_team == selected_match['home']:
+        condicion_selected = "Local"
+        if selected_match['result'] == 'home':
+            resultado_selected = "Victoria"
+        elif selected_match['result'] == 'away':
+            resultado_selected = "Derrota"
+        else:
+            resultado_selected = "Empate"
+        selected_id = home_id
+        opponent_team = selected_match['away']
+
+    elif selected_team == selected_match['away']:
+        condicion_selected = "Visitante"
+        if selected_match['result'] == 'away':
+            resultado_selected = "Victoria"
+        elif selected_match['result'] == 'home':
+            resultado_selected = "Derrota"
+        else:
+            resultado_selected = "Empate"
+        selected_id = away_id
+        opponent_team = selected_match['home']
+    else:
+        condicion_selected = "No encontrado"
+        resultado_selected = "No disponible"
+        selected_id = None
+        opponent_team = None
+
+    # Determinar el color del texto según el resultado
+    if resultado_selected == "Victoria":
+        color_texto = "#28a745"  # Verde para victoria
+    elif resultado_selected == "Empate":
+        color_texto = "#ffc107"  # Amarillo para empate
+    else:
+        color_texto = "#dc3545"  # Rojo para derrota
+
+    # Ruta de la imagen
+    image_path = r"GRONESTATS 1.0\Liga 1 Peru\images\teams"
+    image_filename = f"{selected_id}.png" 
+    image_url = os.path.join(image_path, image_filename)
+
+    return {
+        "match_id": match_id,
+        "round_number": round_number,
+        "home_id": home_id,
+        "away_id": away_id,
+        "condicion_selected": condicion_selected,
+        "resultado_selected": resultado_selected,
+        "color_texto": color_texto,
+        "selected_id": selected_id,
+        "opponent_team": opponent_team,
+        "image_url": image_url,
+        "home_score": home_score ,
+        "away_score" :away_score ,
+        "pain_points" : pain_points,
+    }
