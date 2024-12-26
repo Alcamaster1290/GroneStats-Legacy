@@ -16,11 +16,11 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
     }
     
     indicator_map = {
-        0: "Sin presión",
+        0: "Localía de contendiente por el título",
         1: "Equipo de altura de local",
         2: "Ambos equipos de altura",
-        3: "Equipo de altura de visitante",
-        4: "Candidato al título en altura",
+        3: "Local juega en llano",
+        4: "Partido clave para el local",
         5: "Duelo decisivo entre candidatos al título"
     }
 
@@ -88,61 +88,97 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
 
 
 
-def generar_figura_pain_points(matches_for_team_tournament, selected_team, selected_tournament, selected_year):
-    """Genera la figura de Pain Points vs Número de Ronda."""
-    fig1 = go.Figure()
+def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details):
+    """Genera un gráfico combinado de Pain Points y Resultados con ejes opuestos."""
+    selected_id = match_details['selected_id']
 
-    matches_for_team_tournament = matches_for_team_tournament.sort_values(by=['round_number'], ascending=False)
+    # Crear columna 'result_numeric' adaptada al equipo seleccionado
+    def map_result(row):
+        if row['home_id'] == selected_id:
+            if row['result'] == 'home':
+                return 1  # Victoria local
+            elif row['result'] == 'draw':
+                return 0  # Empate
+            else:
+                return -1  # Derrota local
+        elif row['away_id'] == selected_id:
+            if row['result'] == 'away':
+                return 1  # Victoria visitante
+            elif row['result'] == 'draw':
+                return 0  # Empate
+            else:
+                return -1  # Derrota visitante
+        return None
 
-    fig1.add_trace(go.Scatter(
-        x=matches_for_team_tournament['round_number'], 
-        y=matches_for_team_tournament['pain_points'], 
-        mode='lines+markers', 
+    matches_for_team_tournament['result_numeric'] = matches_for_team_tournament.apply(map_result, axis=1)
+    matches_for_team_tournament = matches_for_team_tournament.sort_values(by=['round_number'], ascending=True)
+
+    # Crear figura combinada
+    fig = go.Figure()
+
+    # Añadir Pain Points (eje izquierdo)
+    fig.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['pain_points'],
+        mode='lines+markers',
         marker=dict(color='blue', size=8),
         line=dict(color='blue', width=2),
-        name='Pain Points'
+        name='Presión del local',
+        yaxis='y1'
     ))
 
-    fig1.update_layout(
-        title=f"Necesidad de victoria para {selected_team} en {selected_tournament} {selected_year}",
-        xaxis_title="Número de Ronda",
-        yaxis_title="Pain Points",
-        yaxis=dict(range=[-0.9, 5.1]),
-        template="plotly_dark",
-        plot_bgcolor="rgb(50, 50, 50)",
-        font=dict(color="white"),
-        hovermode="closest"
-    )
-    return fig1
-
-def generar_figura_resultados(matches_for_team_tournament):
-    """Genera la figura de Resultados vs Número de Ronda."""
-    result_map = {'home': 1, 'draw': 0, 'away': -1}
-    matches_for_team_tournament['result_numeric'] = matches_for_team_tournament['result'].map(result_map)
-
-    matches_df = matches_for_team_tournament.sort_values(by=['round_number'], ascending=True)
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=matches_df['round_number'], 
-        y=matches_df['result_numeric'], 
-        mode='lines+markers', 
-        marker=dict(color='blue', size=8),
-        line=dict(color='blue', width=2),
-        name='Resultado'
+    # Añadir Resultados (eje derecho)
+    colors = matches_for_team_tournament['result_numeric'].map({1: 'green', 0: 'gray', -1: 'red'})
+    fig.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['result_numeric'],
+        mode='lines+markers',
+        marker=dict(color=colors, size=8),
+        line=dict(color='orange', width=2),
+        name='Resultado',
+        yaxis='y2',
+        fill='tonexty',  # Llenar el área entre los traces
+        fillcolor='rgba(255, 165, 0, 0.3)'  # Color naranja semitransparente para el área
     ))
 
-    fig2.update_layout(
-        title="Resultados de los partidos por ronda",
+    # Configuración del diseño
+    fig.update_layout(
+        title=f"Presión del local vs Resultados de {selected_team} en {selected_tournament} {selected_year}",
         xaxis_title="Número de Ronda",
-        yaxis_title="Resultado (1=Home, 0=Draw, -1=Away)",
-        yaxis=dict(tickvals=[-1, 0, 1], ticktext=['Away', 'Draw', 'Home']),
+        yaxis=dict(
+            title="Presión de localía",
+            titlefont=dict(color="blue"),
+            tickfont=dict(color="blue"),
+        ),
+        xaxis=dict(
+            tickmode='array',  # Asegura que los valores del eje X se muestren explícitamente
+            tickvals=matches_for_team_tournament['round_number'].unique(),  # Usamos las rondas disponibles
+        ),
+        yaxis2=dict(
+            title="Resultado",
+            titlefont=dict(color="orange"),
+            tickfont=dict(color="orange"),
+            overlaying='y',
+            side='right',
+            tickvals=[-1, 0, 1],
+            ticktext=['Derrota', 'Empate', 'Victoria']
+        ),
         template="plotly_dark",
         plot_bgcolor="rgb(50, 50, 50)",
         font=dict(color="white"),
         hovermode="closest",
+        legend=dict(
+            x=-0.21,  # Posición horizontal fuera del gráfico
+            y=1.1,   # Posición vertical encima del gráfico
+            xanchor="left",
+            yanchor="top",
+            bgcolor="rgba(50, 50, 50, 0.5)",  # Fondo translúcido para la leyenda
+            font=dict(color="white")  # Color de texto
+        )
     )
-    return fig2
+
+    return fig
+
 
 def imprimir_tarjetas(match_details, selected_team):
     """

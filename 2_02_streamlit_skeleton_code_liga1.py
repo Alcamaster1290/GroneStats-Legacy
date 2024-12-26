@@ -11,8 +11,7 @@ from streamlit_cache_funcs_liga1 import (
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
-    generar_figura_resultados,
-    generar_figura_pain_points,
+    generar_grafico_lineas,
     imprimir_tarjetas
 )
 
@@ -167,41 +166,64 @@ with tabs[0]:
 with tabs[1]:
     st.header("Análisis de Jugadores")
     players_data = load_round_player_statistics(selected_year, selected_tournament, round_number)
+
     if players_data:
         selected_match_id = str(selected_match['match_id'])
         players_data = {str(key): value for key, value in players_data.items()}
 
         if selected_match_id in players_data:
             match_sheet_data = players_data[selected_match_id]
-            
+
+            # Validar y limpiar la columna 'minutesPlayed'
+            if 'minutesPlayed' in match_sheet_data.columns:
+                match_sheet_data['minutesPlayed'] = pd.to_numeric(
+                    match_sheet_data['minutesPlayed'], errors='coerce'
+                ).fillna(0)  # Reemplazar valores no numéricos por 0
+                match_sheet_data = match_sheet_data[
+                    (match_sheet_data['minutesPlayed'] >= 0) &
+                    (match_sheet_data['minutesPlayed'] <= 90)
+                ]  # Filtrar valores fuera del rango [0, 90]
+            else:
+                #st.warning("La columna 'minutesPlayed' no está presente en los datos.")
+                match_sheet_data['minutesPlayed'] = 0
+
             # Filtrar datos por equipo
-            team_stats = match_sheet_data[match_sheet_data['teamName'] == selected_team]
-            opponent_stats = match_sheet_data[match_sheet_data['teamName'] == opponent_team]
-            
-            players_stats = team_stats[(team_stats['minutesPlayed'] > 0)]
-            selected_titulares = players_stats[players_stats['substitute'] == False]
-            selected_ins = players_stats[players_stats['substitute'] == True]
-            selected_outs = selected_titulares[(selected_titulares['minutesPlayed'] < 90)]
+            try:
+                team_stats = match_sheet_data[match_sheet_data['teamName'] == selected_team]
+                opponent_stats = match_sheet_data[match_sheet_data['teamName'] == opponent_team]
 
-            # Crear columnas para mostrar los datos
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader(f"Equipo titular {selected_team}")
-                st.dataframe(selected_titulares)
-                st.subheader(f"Ingresos")
-                st.dataframe(selected_ins)
-                st.subheader(f"Reemplazados")
-                st.dataframe(selected_outs)
+                # Filtrar jugadores con minutos válidos
+                players_stats = team_stats[team_stats['minutesPlayed'] > 0]
+                selected_titulares = players_stats[players_stats['substitute'] == False]
+                selected_ins = players_stats[players_stats['substitute'] == True]
+                selected_outs = selected_titulares[selected_titulares['minutesPlayed'] < 90]
 
-            with col2:
-                st.subheader(f"Equipo titular {opponent_team}")
-                st.dataframe(opponent_stats)
-                
+                # Verificar si hay datos válidos
+                if players_stats.empty:
+                    st.warning("Sin datos a profundidad de los jugadores.")
+                else:
+                    # Crear columnas para mostrar los datos
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.subheader(f"Equipo titular {selected_team}")
+                        st.dataframe(selected_titulares)
+                        st.subheader(f"Ingresos")
+                        st.dataframe(selected_ins)
+                        st.subheader(f"Reemplazados")
+                        st.dataframe(selected_outs)
+
+                    with col2:
+                        st.subheader(f"Equipo titular {opponent_team}")
+                        st.dataframe(opponent_stats)
+
+            except Exception as e:
+                st.error(f"Error procesando los datos: {str(e)}")
         else:
             st.warning(f"No se encontraron datos para el match_id: {selected_match_id}")
     else:
         st.error("No se pudo cargar la información de los jugadores.")
+
 
 # =======================
 # Pestaña: Análisis de Torneo
@@ -211,5 +233,6 @@ with tabs[2]:
     # Crear un contenedor para el gráfico
     with st.container():
         if selected_tournament != "Primera Division, Grand Final":
-            st.plotly_chart(generar_figura_pain_points(matches_for_team_tournament, selected_team, selected_tournament, selected_year), use_container_width=True)
-            st.plotly_chart(generar_figura_resultados(matches_for_team_tournament), use_container_width=True)
+            st.plotly_chart(generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details))
+            st.write(matches_for_team_tournament)
+            st.write(match_details)
