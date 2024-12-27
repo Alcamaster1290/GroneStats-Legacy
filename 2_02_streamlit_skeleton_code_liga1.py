@@ -7,7 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
-    load_round_statistics, load_round_player_statistics, get_match_details,
+    load_round_statistics, load_round_player_statistics, 
+    get_match_details, buscar_expulsados,
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -123,20 +124,21 @@ tabs = st.tabs(["Detalles del Partido", "Análisis de Jugadores", "Análisis de 
 # =======================
 with tabs[0]:
     def filter_by_period(stats, period):
-        return stats[stats['period']=="ALL"] if period == "ALL" else stats[stats['period'] == period]
+        return stats[stats['period'] == "ALL"] if period == "ALL" else stats[stats['period'] == period]
 
     # Cargar y procesar datos
     round_data = load_round_statistics(selected_year, selected_tournament, round_number)
     if round_data:
         selected_match_id = str(selected_match['match_id'])
-        
+
         if selected_match_id in round_data:
             match_sheet_data = round_data[selected_match_id]
-            
+
             # Selección de columnas
-            columns_to_show = ['key', 'name', 'homeValue', 'awayValue', 'period','valueType', 'group', 'statisticsType']
+            columns_to_show = ['key', 'name', 'homeValue', 'awayValue', 'period', 'valueType', 'group', 'statisticsType']
             home_stats = match_sheet_data[columns_to_show].rename(columns={'homeValue': 'Valor Local'})
             away_stats = match_sheet_data[columns_to_show].rename(columns={'awayValue': 'Valor Visitante'})
+
             # Selección del período con valor por defecto "ALL"
             selected_period = st.segmented_control("Tiempo\n", ["ALL", "1ST", "2ND"])
             selected_period = selected_period if selected_period else "ALL"
@@ -145,6 +147,10 @@ with tabs[0]:
             home_stats = filter_by_period(home_stats, selected_period)
             away_stats = filter_by_period(away_stats, selected_period)
 
+            # Validar tarjetas rojas
+            red_cards_home = home_stats[home_stats['name'] == 'Red cards']['Valor Local'].sum()
+            red_cards_away = away_stats[away_stats['name'] == 'Red cards']['Valor Visitante'].sum()
+
             home_stats = home_stats.sort_values(by='group')
             away_stats = away_stats.sort_values(by='group')
 
@@ -152,11 +158,14 @@ with tabs[0]:
 
             with col1:
                 st.write(f"**LOCAL : {selected_match['home']}**")
-                st.table(home_stats[['name', 'Valor Local','group']])
+                st.write(f"**Tarjetas rojas totales: {int(red_cards_home)}**")
+                st.table(home_stats[['name', 'Valor Local', 'group']])
 
             with col2:
                 st.write(f"**VISITANTE : {selected_match['away']}**")
+                st.write(f"**Tarjetas rojas totales: {int(red_cards_away)}**")
                 st.table(away_stats[['name', 'Valor Visitante', 'group']])
+
         else:
             st.warning(f"No se encontraron datos para el match_id: {selected_match_id}")
     else:
@@ -187,7 +196,6 @@ with tabs[1]:
                     (match_sheet_data['minutesPlayed'] <= 90)
                 ]  # Filtrar valores fuera del rango [0, 90]
             else:
-                #st.warning("La columna 'minutesPlayed' no está presente en los datos.")
                 match_sheet_data['minutesPlayed'] = 0
 
             # Filtrar datos por equipo
@@ -195,14 +203,31 @@ with tabs[1]:
                 team_stats = match_sheet_data[match_sheet_data['teamName'] == selected_team]
                 opponent_stats = match_sheet_data[match_sheet_data['teamName'] == opponent_team]
 
-                # Filtrar jugadores con minutos válidos
+                # Filtrar jugadores con minutos válidos - Equipo seleccionado
                 players_stats = team_stats[team_stats['minutesPlayed'] > 0]
                 selected_titulares = players_stats[players_stats['substitute'] == False]
                 selected_ins = players_stats[players_stats['substitute'] == True]
                 selected_outs = selected_titulares[selected_titulares['minutesPlayed'] < 90]
 
+                # Filtrar jugadores con minutos válidos - Equipo rival
+                opponent_players_stats = opponent_stats[opponent_stats['minutesPlayed'] > 0]
+                opponent_titulares = opponent_players_stats[opponent_players_stats['substitute'] == False]
+                opponent_ins = opponent_players_stats[opponent_players_stats['substitute'] == True]
+                opponent_outs = opponent_titulares[opponent_titulares['minutesPlayed'] < 90]
+                
+                # Tarjetas rojas
+                if (red_cards_home > 0) or (red_cards_away > 0):
+                    expulsados, selected_outs, opponent_outs = buscar_expulsados(
+                        selected_ins, selected_outs, opponent_ins, opponent_outs
+                    )
+                    if expulsados:
+                        expulsados_str = "\n".join([f"- {nombre} (Min {int(minutos)})" for nombre, minutos in expulsados])                        
+                        st.subheader("Expulsados por tarjeta roja:")
+                        st.text(expulsados_str)
+
+
                 # Verificar si hay datos válidos
-                if players_stats.empty:
+                if players_stats.empty and opponent_players_stats.empty:
                     st.warning("Sin datos a profundidad de los jugadores.")
                 else:
                     # Crear columnas para mostrar los datos
@@ -218,7 +243,11 @@ with tabs[1]:
 
                     with col2:
                         st.subheader(f"Equipo titular {opponent_team}")
-                        st.dataframe(opponent_stats)
+                        st.dataframe(opponent_titulares)
+                        st.subheader(f"Ingresos")
+                        st.dataframe(opponent_ins)
+                        st.subheader(f"Reemplazados")
+                        st.dataframe(opponent_outs)
 
             except Exception as e:
                 st.error(f"Error procesando los datos: {str(e)}")

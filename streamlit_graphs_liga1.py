@@ -310,9 +310,9 @@ def get_accumulated_graph(matches_for_team_tournament):
     """
     # Calcular los pain points ajustados fila por fila
     matches_for_team_tournament['pain_points_ajustados'] = matches_for_team_tournament.apply(
-        lambda row: round(row['pain_points']*2) if row['result_numeric'] == 1 else
-                    (-row['pain_points'] if row['result_numeric'] == 0 else
-                     -row['pain_points']*2),
+        lambda row: round((row['pain_points'])*2) if row['result_numeric'] == 1 else
+                    (-row['pain_points']) if row['result_numeric'] == 0 else
+                     (-(row['pain_points'])*2),
         axis=1
     )
 
@@ -369,14 +369,23 @@ def get_accumulated_graph(matches_for_team_tournament):
 
 def mostrar_tarjeta_pain_points():
     st.markdown("""
-    <div style="border: 2px solid #00FF7F; border-radius: 10px; padding: 15px; background-color: #2E2E2E;">
-        <h2 style="color: #00FF7F;">Cálculo de Puntos de presión</h2>
-        <p style="color: #FFFFFF;">Este cálculo se realiza para ajustar los Puntos de presión en función del resultado del partido. La lógica es la siguiente:</p>
-        <ul style="color: #FFFFFF;">
-            <li><strong>Victoria:</strong> Los Puntos de presión se multiplican por 2. Refleja un impacto positivo tras una victoria.</li>
-            <li><strong>Empate:</strong> Los Puntos de presión juegan en contra de ambos y se restan al total. </li>
-            <li><strong>Derrota:</strong> Los Puntos de presión se multiplican por -2. Refleja un impacto negativo considerable tras una derrota.</li>
+    <div style="border: 2px solid #00FF7F; border-radius: 10px; padding: 20px; background: linear-gradient(145deg, #2E2E2E, #3A3A3A); box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);">
+        <h2 style="color: #00FF7F; text-align: center; font-size: 1.8em;">Cálculo de Puntos de Presión</h2>
+        <p style="color: #DDDDDD; font-size: 1.1em; text-align: justify;">Los <strong>Puntos de Presión</strong> se determinan según la localía, tomando en cuenta factores como favoritos al título o altura del estadio. La lógica es la siguiente:</p>
+        <ul style="color: #FFFFFF; font-size: 1.1em; list-style: none; padding-left: 0;">
+            <li style="margin-bottom: 10px;">
+                <span style="color: #00FF7F; font-size: 1.3em;">✔️</span>
+                <strong>Victoria:</strong> Los Puntos de Presión se multiplican por <strong>2</strong>. Refleja un impacto positivo tras una victoria.
+            </li>
+            <li style="margin-bottom: 10px;">
+                <span style="color: #FFD700; font-size: 1.3em;">➖</span>
+                <strong>Empate:</strong> Los Puntos de Presión juegan en contra de ambos equipos y se restan del total.
+            </li>
+            <li>
+                <span style="color: #FF4500; font-size: 1.3em;">❌</span>
+                <strong>Derrota:</strong> Los Puntos de Presión se multiplican por <strong>-2</strong>. Refleja un impacto negativo considerable tras una derrota.
+            </li>
         </ul>
-        <p style="color: #FFFFFF;">Este ajuste permite entender mejor el impacto emocional y psicológico que cada resultado puede tener sobre el equipo al ganar en distintas localías y a rivales directos.</p>
+        <p style="color: #DDDDDD; font-size: 1.1em; text-align: justify;">Este ajuste permite entender el impacto en la carrera hacia el título al ganar en distintas localías y entre rivales directos.</p>
     </div>
     """, unsafe_allow_html=True)
