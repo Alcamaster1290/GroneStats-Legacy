@@ -7,17 +7,20 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
-    load_round_statistics, load_round_player_statistics, get_match_details
+    load_round_statistics, load_round_player_statistics, get_match_details,
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
     generar_grafico_lineas,
-    imprimir_tarjetas
+    imprimir_tarjetas,
+    get_follow_up_graph,
+    get_accumulated_graph,
+    mostrar_tarjeta_pain_points,
 )
 
 st.set_page_config(
         page_title="GRONESTATS by AlvaroCC",
-        layout='centered',
+        layout='wide',
         page_icon=r'GRONESTATS 1.0\AL.png',
         initial_sidebar_state="expanded")
 
@@ -108,7 +111,7 @@ if match_details['condicion_selected'] == "Local":
 elif match_details['condicion_selected'] == "Visitante":
     fig = crear_grafico_score(away_score, home_score, selected_team,opponent_team,pain_points)
 with st.container():
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width= True)
 
 # =======================
 # Crear pestañas con Streamlit
@@ -232,7 +235,27 @@ with tabs[2]:
     st.header("Análisis de Torneo")
     # Crear un contenedor para el gráfico
     with st.container():
-        if selected_tournament != "Primera Division, Grand Final":
+        if selected_tournament != "Primera Division, Grand Final" and selected_tournament != "Liga 1, Relegation/Promotion Playoffs":
+            # Generar el gráfico de líneas (si es necesario)
             st.plotly_chart(generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details))
-            st.write(matches_for_team_tournament)
-            st.write(match_details)
+
+            # Obtener los gráficos de seguimiento y acumulados
+            seguimiento_graph = get_follow_up_graph(matches_for_team_tournament)
+            acumulado_graph = get_accumulated_graph(matches_for_team_tournament)
+            st.plotly_chart(seguimiento_graph, use_container_width= True)
+            st.plotly_chart(acumulado_graph,  use_container_width= True)
+
+            resultados = {
+                "total_ajustado": round(matches_for_team_tournament['pain_points_ajustados'].sum()),
+                "pain_points_posibles": round(matches_for_team_tournament['pain_points'].sum()*0.75),
+                "total_result_selected": matches_for_team_tournament['result_selected'].sum()
+            }
+            st.subheader(f"Resumen de puntos para {selected_team}")
+            st.write(f"Puntos Tradicionales obtenidos en {selected_tournament} {selected_year}:", resultados["total_result_selected"])
+            st.write(f"Puntos de Presión obtenidos en {selected_tournament} {selected_year}:", resultados["total_ajustado"])
+            st.write("Puntos de Presión necesarios para competir por el torneo:", resultados["pain_points_posibles"])
+            mostrar_tarjeta_pain_points()
+            st.warning(f"Próximamente: \n - Evolución de tabla de posiciones por ronda \n - Compara puntos de presión conseguidos con otros equipos")
+
+
+

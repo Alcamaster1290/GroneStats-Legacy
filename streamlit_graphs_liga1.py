@@ -28,12 +28,11 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
     color = color_map.get(pain_points, "gray")
     text = indicator_map.get(pain_points)
 
+    # Crear el gráfico indicador
+    fig = go.Figure()
 
     # Configuración de columnas en Streamlit
     col1, col2, col3 = st.columns(3)
-
-    # Crear el gráfico indicador
-    fig = go.Figure()
 
     # Indicador para los goles del equipo (col1)
     with col1:
@@ -168,10 +167,10 @@ def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_
         font=dict(color="white"),
         hovermode="closest",
         legend=dict(
-            x=-0.21,  # Posición horizontal fuera del gráfico
-            y=1.1,   # Posición vertical encima del gráfico
-            xanchor="left",
-            yanchor="top",
+            x=0.5,  # Centrar horizontalmente
+            y=1.02,  # Posición vertical encima del gráfico
+            xanchor="center",  # Ancla horizontal al centro
+            yanchor="bottom",  # Ancla vertical en la parte inferior
             bgcolor="rgba(50, 50, 50, 0.5)",  # Fondo translúcido para la leyenda
             font=dict(color="white")  # Color de texto
         )
@@ -233,3 +232,151 @@ def imprimir_tarjetas(match_details, selected_team):
             """,
             unsafe_allow_html=True
         )
+
+def get_follow_up_graph(matches_for_team_tournament):
+    """
+    Genera un gráfico de seguimiento de puntos de presión ajustados y puntos tradicionales por ronda.
+
+    Args:
+        matches_for_team_tournament (pd.DataFrame): DataFrame con las columnas 'result_numeric' y 'pain_points'.
+
+    Returns:
+        go.Figure: Gráfico de seguimiento.
+    """
+    # Calcular los pain points ajustados fila por fila
+    matches_for_team_tournament['pain_points_ajustados'] = matches_for_team_tournament.apply(
+        lambda row: row['pain_points']*2 if row['result_numeric'] == 1 else
+                    -row['pain_points'] if row['result_numeric'] == 0 else
+                     -row['pain_points']*2,
+        axis=1
+    )
+
+    # Calcular los puntos tradicionales basados en el resultado
+    matches_for_team_tournament['result_selected'] = matches_for_team_tournament['result_numeric'].map({
+        1: 3,  # Victoria
+        0: 1,  # Empate
+        -1: 0  # Derrota
+    })
+
+    # Crear el gráfico de líneas para el desglose por ronda
+    seguimiento_grafico = go.Figure()
+
+    # Línea para pain_points_ajustados
+    seguimiento_grafico.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['pain_points_ajustados'],
+        mode='lines+markers',
+        name='Puntos de Presión',
+        line=dict(color='blue', width=2),
+        marker=dict(size=6)
+    ))
+
+    # Línea para result_selected
+    seguimiento_grafico.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['result_selected'],
+        mode='lines+markers',
+        name='Puntos Tradicionales (0, +1, +3)',
+        line=dict(color='green', width=2),
+        marker=dict(size=6)
+    ))
+
+    # Personalización del gráfico
+    seguimiento_grafico.update_layout(
+        title="Puntos de Presión y Tradicionales obtenidos por Ronda",
+        xaxis_title="Número de Ronda",
+        yaxis_title="Puntos",
+        legend_title="Tipo de Puntos obtenidos",
+        template="plotly_white"
+    )
+
+    seguimiento_grafico.update_xaxes(
+        tickmode='linear',  # Muestra todos los ticks en escala lineal
+        dtick=1,  # Intervalo de ticks
+        tickangle=75
+    )
+
+    return seguimiento_grafico
+
+def get_accumulated_graph(matches_for_team_tournament):
+    """
+    Genera un gráfico acumulado de puntos de presión ajustados y puntos tradicionales por ronda.
+
+    Args:
+        matches_for_team_tournament (pd.DataFrame): DataFrame con las columnas 'result_numeric' y 'pain_points'.
+
+    Returns:
+        go.Figure: Gráfico acumulado.
+    """
+    # Calcular los pain points ajustados fila por fila
+    matches_for_team_tournament['pain_points_ajustados'] = matches_for_team_tournament.apply(
+        lambda row: round(row['pain_points']*2) if row['result_numeric'] == 1 else
+                    (-row['pain_points'] if row['result_numeric'] == 0 else
+                     -row['pain_points']*2),
+        axis=1
+    )
+
+    # Calcular los puntos tradicionales basados en el resultado
+    matches_for_team_tournament['result_selected'] = matches_for_team_tournament['result_numeric'].map({
+        1: 3,  # Victoria
+        0: 1,  # Empate
+        -1: 0  # Derrota
+    })
+
+    # Calcular acumulados
+    matches_for_team_tournament['result_selected_acumulado'] = matches_for_team_tournament['result_selected'].cumsum()
+    matches_for_team_tournament['pain_points_ajustados_acumulado'] = matches_for_team_tournament['pain_points_ajustados'].cumsum()
+
+    # Crear el gráfico acumulado
+    acumulado_grafico = go.Figure()
+
+    # Línea para pain_points_ajustados_acumulado
+    acumulado_grafico.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['pain_points_ajustados_acumulado'],
+        mode='lines+markers',
+        name='Puntos de Presión',
+        line=dict(color='blue', width=2),
+        marker=dict(size=6)
+    ))
+
+    # Línea para result_selected_acumulado
+    acumulado_grafico.add_trace(go.Scatter(
+        x=matches_for_team_tournament['round_number'],
+        y=matches_for_team_tournament['result_selected_acumulado'],
+        mode='lines+markers',
+        name='Puntos Tradicionales (0, +1, +3)',
+        line=dict(color='green', width=2),
+        marker=dict(size=6)
+    ))
+
+    # Personalización del gráfico
+    acumulado_grafico.update_layout(
+        title="Puntos Acumulados de Presión y Tradicionales por Ronda",
+        xaxis_title="Número de Ronda",
+        yaxis_title="Puntos Acumulados",
+        legend_title="Tipo de Puntos Acumulados",
+        template="plotly_white"
+    )
+
+    acumulado_grafico.update_xaxes(
+        tickmode='linear',  # Muestra todos los ticks en escala lineal
+        dtick=1,  # Intervalo de ticks
+        tickangle=75
+    )
+
+    return acumulado_grafico
+
+def mostrar_tarjeta_pain_points():
+    st.markdown("""
+    <div style="border: 2px solid #00FF7F; border-radius: 10px; padding: 15px; background-color: #2E2E2E;">
+        <h2 style="color: #00FF7F;">Cálculo de Puntos de presión</h2>
+        <p style="color: #FFFFFF;">Este cálculo se realiza para ajustar los Puntos de presión en función del resultado del partido. La lógica es la siguiente:</p>
+        <ul style="color: #FFFFFF;">
+            <li><strong>Victoria:</strong> Los Puntos de presión se multiplican por 2. Refleja un impacto positivo tras una victoria.</li>
+            <li><strong>Empate:</strong> Los Puntos de presión juegan en contra de ambos y se restan al total. </li>
+            <li><strong>Derrota:</strong> Los Puntos de presión se multiplican por -2. Refleja un impacto negativo considerable tras una derrota.</li>
+        </ul>
+        <p style="color: #FFFFFF;">Este ajuste permite entender mejor el impacto emocional y psicológico que cada resultado puede tener sobre el equipo al ganar en distintas localías y a rivales directos.</p>
+    </div>
+    """, unsafe_allow_html=True)
