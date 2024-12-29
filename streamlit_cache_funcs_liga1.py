@@ -33,6 +33,21 @@ def parse_years(x):
         return []
 
 @st.cache_data
+def load_round_average_positions(year_selected, torneo_selected, round_number):
+    """
+    Carga las estadísticas por equipo de un archivo Excel basado en el año, torneo y jornada.
+    """
+    file_path = f"GRONESTATS 1.0/Liga 1 Peru/{year_selected}/{torneo_selected}/{round_number}_AveragePositions.xlsx"
+    try:
+        xls = pd.ExcelFile(file_path)
+        data = {sheet_name: xls.parse(sheet_name) for sheet_name in xls.sheet_names}
+        return data
+    except FileNotFoundError:
+        st.error(f"Archivo no encontrado: {file_path}")
+        return None
+
+
+@st.cache_data
 def load_round_statistics(year_selected, torneo_selected, round_number):
     """
     Carga las estadísticas por equipo de un archivo Excel basado en el año, torneo y jornada.

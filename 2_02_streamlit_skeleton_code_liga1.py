@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
-    load_round_statistics, load_round_player_statistics, 
+    load_round_statistics, load_round_player_statistics, load_round_average_positions, 
     get_match_details, buscar_expulsados,
 )
 from streamlit_graphs_liga1 import (
@@ -118,7 +118,11 @@ with st.container():
 # Crear pestañas con Streamlit
 # =======================
 tabs = st.tabs(["Detalles del Partido", "Análisis de Jugadores", "Análisis de Torneo"])
-
+average_positions = load_round_average_positions(selected_year, selected_tournament, round_number)
+if average_positions:
+    selected_match_id = str(selected_match['match_id'])
+    if selected_match_id in average_positions:
+        ap_data = average_positions[selected_match_id]
 # =======================
 # Pestaña: Detalles del Partido
 # =======================
@@ -153,9 +157,8 @@ with tabs[0]:
 
             home_stats = home_stats.sort_values(by='group')
             away_stats = away_stats.sort_values(by='group')
-
+            
             col1, col2 = st.columns(2)
-
             with col1:
                 st.write(f"**LOCAL : {selected_match['home']}**")
                 st.write(f"**Tarjetas rojas totales: {int(red_cards_home)}**")
@@ -230,7 +233,7 @@ with tabs[1]:
                 if players_stats.empty and opponent_players_stats.empty:
                     st.warning("Sin datos a profundidad de los jugadores.")
                 else:
-                    # Crear columnas para mostrar los datos
+                    st.dataframe(ap_data)
                     col1, col2 = st.columns(2)
 
                     with col1:
