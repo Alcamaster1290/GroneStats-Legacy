@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
-    get_match_details, buscar_expulsados,
+    get_match_details,
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -17,6 +17,7 @@ from streamlit_graphs_liga1 import (
     get_follow_up_graph,
     get_accumulated_graph,
     mostrar_tarjeta_pain_points,
+    generar_html_equipo
 )
 
 st.set_page_config(
@@ -118,18 +119,24 @@ with st.container():
 # Crear pestañas con Streamlit
 # =======================
 tabs = st.tabs(["Detalles del Partido", "Análisis de Jugadores", "Análisis de Torneo"])
+# =======================
+# Obtener posiciones promedio
+# =======================
 average_positions = load_round_average_positions(selected_year, selected_tournament, round_number)
 if average_positions:
     selected_match_id = str(selected_match['match_id'])
     if selected_match_id in average_positions:
-        ap_data = average_positions[selected_match_id]
+        average_position_df = average_positions[selected_match_id]
+        # select only id averageX averageY pointsCount
+        average_position_df = average_position_df[['id', 'averageX', 'averageY', 'pointsCount', 'team']]
+        selected_average_position_df = average_position_df[average_position_df['team'] == selected_team]
+        opponent_average_position_df = average_position_df[average_position_df['team'] == opponent_team]
 # =======================
 # Pestaña: Detalles del Partido
 # =======================
 with tabs[0]:
     def filter_by_period(stats, period):
-        return stats[stats['period'] == "ALL"] if period == "ALL" else stats[stats['period'] == period]
-
+        return stats[stats['period'] == "ALL"] if period == "COMPLETO" else stats[stats['period'] == period]
     # Cargar y procesar datos
     round_data = load_round_statistics(selected_year, selected_tournament, round_number)
     if round_data:
@@ -140,35 +147,58 @@ with tabs[0]:
 
             # Selección de columnas
             columns_to_show = ['key', 'name', 'homeValue', 'awayValue', 'period', 'valueType', 'group', 'statisticsType']
-            home_stats = match_sheet_data[columns_to_show].rename(columns={'homeValue': 'Valor Local'})
-            away_stats = match_sheet_data[columns_to_show].rename(columns={'awayValue': 'Valor Visitante'})
+            home_stats = match_sheet_data[columns_to_show].rename(columns={'homeValue': 'Valor'})
+            away_stats = match_sheet_data[columns_to_show].rename(columns={'awayValue': 'Valor'})
 
-            # Selección del período con valor por defecto "ALL"
-            selected_period = st.segmented_control("Tiempo\n", ["ALL", "1ST", "2ND"])
-            selected_period = selected_period if selected_period else "ALL"
+            # Selección del período con valor por defecto "COMPLETO"
+            selected_period = st.segmented_control("Tiempo\n", ["COMPLETO", "1ST", "2ND"])
+            selected_period = selected_period if selected_period else "COMPLETO"
 
             # Filtrar estadísticas por período
             home_stats = filter_by_period(home_stats, selected_period)
             away_stats = filter_by_period(away_stats, selected_period)
 
             # Validar tarjetas rojas
-            red_cards_home = home_stats[home_stats['name'] == 'Red cards']['Valor Local'].sum()
-            red_cards_away = away_stats[away_stats['name'] == 'Red cards']['Valor Visitante'].sum()
+            red_cards_home = home_stats[home_stats['name'] == 'Red cards']['Valor'].sum()
+            red_cards_away = away_stats[away_stats['name'] == 'Red cards']['Valor'].sum()
+            # Validar tarjetas amarillas
+            yellow_cards_home = home_stats[home_stats['name'] == 'Yellow cards']['Valor'].sum()
+            yellow_cards_away = away_stats[away_stats['name'] == 'Yellow cards']['Valor'].sum()
+            # Quita las filas de tarjetas rojas y amarillas
+            home_stats = home_stats[~home_stats['name'].isin(['Red cards', 'Yellow cards'])]
+            away_stats = away_stats[~away_stats['name'].isin(['Red cards', 'Yellow cards'])]
 
             home_stats = home_stats.sort_values(by='group')
             away_stats = away_stats.sort_values(by='group')
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"**LOCAL : {selected_match['home']}**")
-                st.write(f"**Tarjetas rojas totales: {int(red_cards_home)}**")
-                st.table(home_stats[['name', 'Valor Local', 'group']])
+            html_local = generar_html_equipo(
+                f"{selected_match['home']}",
+                home_stats,
+                color_titulo="#1a73e8",  # Azul
+                color_grupo="#0057b7",   # Azul más oscuro
+                red_cards=red_cards_home,
+                yellow_cards=yellow_cards_home,
+            )
 
-            with col2:
-                st.write(f"**VISITANTE : {selected_match['away']}**")
-                st.write(f"**Tarjetas rojas totales: {int(red_cards_away)}**")
-                st.table(away_stats[['name', 'Valor Visitante', 'group']])
+            html_visitante = generar_html_equipo(
+                f"{selected_match['away']}",
+                away_stats,
+                color_titulo="#d32f2f",  # Rojo
+                color_grupo="#880e4f",   # Rojo más oscuro
+                red_cards=red_cards_away,
+                yellow_cards=yellow_cards_away,
+            )
 
+            # Contenedor principal para mostrar ambos equipos en tres columnas
+            html_content = f"""
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">{html_local}</div>
+                    <div style="flex: 1;"></div>
+                    <div style="flex: 1;">{html_visitante}</div>
+                </div>
+                """
+            st.markdown(html_content, unsafe_allow_html=True)
+            
         else:
             st.warning(f"No se encontraron datos para el match_id: {selected_match_id}")
     else:
@@ -218,24 +248,34 @@ with tabs[1]:
                 opponent_ins = opponent_players_stats[opponent_players_stats['substitute'] == True]
                 opponent_outs = opponent_titulares[opponent_titulares['minutesPlayed'] < 90]
                 
-                # Tarjetas rojas
-                if (red_cards_home > 0) or (red_cards_away > 0):
-                    expulsados, selected_outs, opponent_outs = buscar_expulsados(
-                        selected_ins, selected_outs, opponent_ins, opponent_outs
-                    )
-                    if expulsados:
-                        expulsados_str = "\n".join([f"- {nombre} (Min {int(minutos)})" for nombre, minutos in expulsados])                        
-                        st.subheader("Expulsados por tarjeta roja:")
-                        st.text(expulsados_str)
-
+                # Join con average_positions
+                opponent_titulares = opponent_titulares.merge(opponent_average_position_df, on='id', how='left')
+                selected_titulares = selected_titulares.merge(selected_average_position_df, on='id', how='left')
+                selected_ins = selected_ins.merge(selected_average_position_df, on='id', how='left')
+                selected_outs = selected_outs.merge(selected_average_position_df, on='id', how='left')
+                opponent_ins = opponent_ins.merge(opponent_average_position_df, on='id', how='left')
+                opponent_outs = opponent_outs.merge(opponent_average_position_df, on='id', how='left')
+                
+                selected_position = st.segmented_control("Posicion\n",options=["TODOS","DEFENSAS", "MEDIOCENTROS", "DELANTEROS"],default="TODOS")
+                if selected_position == "DEFENSAS":
+                    selected_position = "D"
+                elif selected_position == "MEDIOCENTROS":
+                    selected_position = "M"
+                elif selected_position == "DELANTEROS":
+                    selected_position = "F"
+                if selected_position != "TODOS":
+                    selected_titulares = selected_titulares[selected_titulares['position'] == selected_position]
+                    selected_ins = selected_ins[selected_ins['position'] == selected_position]
+                    selected_outs = selected_outs[selected_outs['position'] == selected_position]
+                    opponent_titulares = opponent_titulares[opponent_titulares['position'] == selected_position]
+                    opponent_ins = opponent_ins[opponent_ins['position'] == selected_position]
+                    opponent_outs = opponent_outs[opponent_outs['position'] == selected_position]
 
                 # Verificar si hay datos válidos
                 if players_stats.empty and opponent_players_stats.empty:
                     st.warning("Sin datos a profundidad de los jugadores.")
                 else:
-                    st.dataframe(ap_data)
                     col1, col2 = st.columns(2)
-
                     with col1:
                         st.subheader(f"Equipo titular {selected_team}")
                         st.dataframe(selected_titulares)
@@ -245,6 +285,7 @@ with tabs[1]:
                         st.dataframe(selected_outs)
 
                     with col2:
+                        
                         st.subheader(f"Equipo titular {opponent_team}")
                         st.dataframe(opponent_titulares)
                         st.subheader(f"Ingresos")

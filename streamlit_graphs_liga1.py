@@ -389,3 +389,28 @@ def mostrar_tarjeta_pain_points():
         <p style="color: #DDDDDD; font-size: 1.1em; text-align: justify;">Este ajuste permite entender el impacto en la carrera hacia el título al ganar en distintas localías y entre rivales directos.</p>
     </div>
     """, unsafe_allow_html=True)
+
+# Función para generar el contenido HTML dinámico de las estadísticas
+def generar_html_equipo(equipo, stats, color_titulo, color_grupo, red_cards, yellow_cards):
+    html = f"""
+    <div style="width: 80%; margin: 8px auto; font-family: sans-serif; text-align: center;">
+        <h2 style="color: {color_titulo};">{equipo}</h3>
+        <p><strong>Tarjetas rojas:</strong> {int(red_cards)}</p>
+        <p><strong>Tarjetas amarillas:</strong> {int(yellow_cards)}</p>
+    """
+    # Agrupar estadísticas por 'group' y generar HTML
+    grouped_stats = stats.groupby('group')
+    for group, group_data in grouped_stats:
+        if group == 'Match overview':
+            html += f"<h3 style='color: {color_grupo};'>{group}</h3>"
+            for _, row in group_data.iterrows():
+                html += f"<p>{row['name']}: {row['Valor']}</p>"
+
+    for group, group_data in grouped_stats:
+        if group != 'Match overview':
+            html += f"<h3 style='color: {color_grupo};'>{group}</h3>"
+            for _, row in group_data.iterrows():
+                html += f"<p>{row['name']}: {row['Valor']}</p>"
+
+    html += "</div>"
+    return html
