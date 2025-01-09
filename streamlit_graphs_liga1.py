@@ -1,10 +1,15 @@
 import streamlit as st
 import plotly.graph_objects as go
+import matplotlib.colors as mcolors
+from streamlit_cache_funcs_liga1 import get_team_id
 
 def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
     """
     Crea un gráfico indicador utilizando Plotly y muestra los pain points en un indicador central tipo gauge.
     """
+    selected_id = get_team_id(team_name)
+    opponent_id = get_team_id(opponent)
+
     # Mapeo de color según el valor de 'pain_points'
     color_map = {
         0: "green",
@@ -31,10 +36,17 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
     # Crear el gráfico indicador
     fig = go.Figure()
 
-    # Configuración de columnas en Streamlit
-    col1, col2, col3 = st.columns(3)
+    # Centrar la imagen en la columna usando Streamlit
+    c1, c2, c3, c4, c5, c6 ,c7, c8= st.columns(8, gap='large', vertical_alignment='bottom')
+    with c2:
+        with st.container():
+            st.image(f"GRONESTATS 1.0/Liga 1 Peru/images/teams/{selected_id}.png", width=100, use_container_width=True)
+    with c7:
+        with st.container():
+            st.image(f"GRONESTATS 1.0/Liga 1 Peru/images/teams/{opponent_id}.png", width=100, use_container_width=True)
 
-    # Indicador para los goles del equipo (col1)
+    col1, col2, col3 = st.columns(3)
+    # Goles equipo seleccionado
     with col1:
         fig.add_trace(go.Indicator(
             mode="number",
@@ -42,8 +54,7 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
             title={"text": f"{team_name}"},
             domain={'x': [0, 0.33], 'y': [0, 1]}  # Ajustar la columna a la izquierda
         ))
-
-    # Indicador para los goles del oponente (col3)
+    # Goles equipo oponente
     with col3:
         fig.add_trace(go.Indicator(
             mode="number",
@@ -51,6 +62,8 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
             title={"text": f"{opponent}"},
             domain={'x': [0.67, 1], 'y': [0, 1]}  # Ajustar la columna a la derecha
         ))
+
+
 
     # Indicador de Pain Points en el centro con gauge (col2) y color dinámico
     with col2:
@@ -391,10 +404,13 @@ def mostrar_tarjeta_pain_points():
     """, unsafe_allow_html=True)
 
 # Función para generar el contenido HTML dinámico de las estadísticas
-def generar_html_equipo(equipo, stats, color_titulo, color_grupo, red_cards, yellow_cards):
+def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_cards, yellow_cards):
+    rgb_color = mcolors.hex2color(color_secundario)
+    darker_rgb = [c * 0.55 for c in rgb_color] 
+    color_secundario = mcolors.to_hex(darker_rgb)
     html = f"""
-    <div style="width: 80%; margin: 8px auto; font-family: sans-serif; text-align: center;">
-        <h2 style="color: {color_titulo};">{equipo}</h3>
+    <div style="width: 100%; margin: 4px auto; font-family: sans-serif; text-align: center;">
+        <h3 style="color: {color_primario}; text-shadow: 1px 1px 1px grey;">{equipo}</h3>
         <p><strong>Tarjetas rojas:</strong> {int(red_cards)}</p>
         <p><strong>Tarjetas amarillas:</strong> {int(yellow_cards)}</p>
     """
@@ -402,15 +418,19 @@ def generar_html_equipo(equipo, stats, color_titulo, color_grupo, red_cards, yel
     grouped_stats = stats.groupby('group')
     for group, group_data in grouped_stats:
         if group == 'Match overview':
-            html += f"<h3 style='color: {color_grupo};'>{group}</h3>"
+            html += f"<h4 style='color: #2b3ef8; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
             for _, row in group_data.iterrows():
-                html += f"<p>{row['name']}: {row['Valor']}</p>"
+                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
+        elif group == 'Goalkeeping':
+            html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
+            for _, row in group_data.iterrows():
+                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"   
 
     for group, group_data in grouped_stats:
-        if group != 'Match overview':
-            html += f"<h3 style='color: {color_grupo};'>{group}</h3>"
+        if group != 'Match overview' and group != 'Goalkeeping':
+            html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
             for _, row in group_data.iterrows():
-                html += f"<p>{row['name']}: {row['Valor']}</p>"
+                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
 
     html += "</div>"
     return html

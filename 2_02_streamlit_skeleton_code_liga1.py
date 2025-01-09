@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
-    get_match_details,
+    get_match_details, 
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -90,6 +90,7 @@ match_details = get_match_details(selected_match, selected_team)
 # Crear e imprimir las tarjetas
 # =======================
 imprimir_tarjetas(match_details, selected_team)
+st.divider()
 
 # =======================
 # Imprimir escudo del equipo seleccionado
@@ -104,6 +105,15 @@ else:
 # Extraer valores únicos como escalares
 home_score = match_details['home_score']
 away_score = match_details['away_score']
+
+home_team_color = match_details['home_team_colors']
+home_primary_color = match_details['home_team_colors'].split(',')[0].split(':')[1].strip()
+home_secondary_color = match_details['home_team_colors'].split(',')[1].split(':')[1].strip()
+
+away_team_color = match_details['away_team_colors']
+away_primary_color = match_details['away_team_colors'].split(',')[0].split(':')[1].strip()
+away_secondary_color = match_details['away_team_colors'].split(',')[1].split(':')[1].strip()
+
 pain_points = match_details['pain_points']
 opponent_team = match_details['opponent_team']
 round_number = match_details['round_number']
@@ -127,7 +137,7 @@ if average_positions:
     selected_match_id = str(selected_match['match_id'])
     if selected_match_id in average_positions:
         average_position_df = average_positions[selected_match_id]
-        # select only id averageX averageY pointsCount
+        # seleccionar id averageX averageY pointsCount
         average_position_df = average_position_df[['id', 'averageX', 'averageY', 'pointsCount', 'team']]
         selected_average_position_df = average_position_df[average_position_df['team'] == selected_team]
         opponent_average_position_df = average_position_df[average_position_df['team'] == opponent_team]
@@ -174,8 +184,8 @@ with tabs[0]:
             html_local = generar_html_equipo(
                 f"{selected_match['home']}",
                 home_stats,
-                color_titulo="#1a73e8",  # Azul
-                color_grupo="#0057b7",   # Azul más oscuro
+                color_primario=home_primary_color,  
+                color_secundario=home_secondary_color,   
                 red_cards=red_cards_home,
                 yellow_cards=yellow_cards_home,
             )
@@ -183,8 +193,8 @@ with tabs[0]:
             html_visitante = generar_html_equipo(
                 f"{selected_match['away']}",
                 away_stats,
-                color_titulo="#d32f2f",  # Rojo
-                color_grupo="#880e4f",   # Rojo más oscuro
+                color_primario=away_primary_color, 
+                color_secundario=away_secondary_color,   
                 red_cards=red_cards_away,
                 yellow_cards=yellow_cards_away,
             )

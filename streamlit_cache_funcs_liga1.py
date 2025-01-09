@@ -11,6 +11,14 @@ def load_data():
     matches = pd.read_excel(r"GRONESTATS 1.0\Liga 1 Peru\2_Matches_Detailed.xlsx")
     teams = pd.read_excel(r"GRONESTATS 1.0\Liga 1 Peru\1_Teams.xlsx")
     return matches, teams
+@st.cache_data
+def get_team_id(team_name):
+    """
+    Obtiene el nombre del equipo en base al 'team_name'.
+    """
+    teams_df = pd.read_excel(r"GRONESTATS 1.0\Liga 1 Peru\1_Teams.xlsx")
+    team_name = teams_df.loc[teams_df['team'] == team_name, 'team_id'].values
+    return team_name[0] if team_name else None
 
 def extract_year_from_season(season):
     """
@@ -105,6 +113,8 @@ def get_match_details(selected_match, selected_team):
     home_score = selected_match['home_score']
     away_score = selected_match['away_score']
     pain_points = selected_match['pain_points']
+    home_team_colors = selected_match['home_team_colors']
+    away_team_colors = selected_match['away_team_colors']
 
     # Determinar la condición del equipo seleccionado
     if selected_team == selected_match['home']:
@@ -161,4 +171,6 @@ def get_match_details(selected_match, selected_team):
         "home_score": home_score ,
         "away_score" :away_score ,
         "pain_points" : pain_points,
+        "home_team_colors": home_team_colors,
+        "away_team_colors": away_team_colors,
     }
