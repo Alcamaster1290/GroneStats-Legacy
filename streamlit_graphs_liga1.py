@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
+import numpy as np
 import matplotlib.colors as mcolors
 from streamlit_cache_funcs_liga1 import get_team_id
 
@@ -37,11 +38,14 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
     fig = go.Figure()
 
     # Centrar la imagen en la columna usando Streamlit
-    c1, c2, c3, c4, c5, c6 ,c7, c8= st.columns(8, gap='large', vertical_alignment='bottom')
-    with c2:
+    c1, c2, c3, c4, c5, c6 ,c7,= st.columns(7, gap='medium', vertical_alignment='center')
+    with c3:
         with st.container():
             st.image(f"GRONESTATS 1.0/Liga 1 Peru/images/teams/{selected_id}.png", width=100, use_container_width=True)
-    with c7:
+    with c4:
+        with st.container():
+            st.image(f"GRONESTATS 1.0/vs.png", width=100, use_container_width=True)
+    with c5:
         with st.container():
             st.image(f"GRONESTATS 1.0/Liga 1 Peru/images/teams/{opponent_id}.png", width=100, use_container_width=True)
 
@@ -70,7 +74,7 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
         fig.add_trace(go.Indicator(
             mode="gauge+number",
             value=pain_points,
-            title={"text": text},
+            title={"text": text, "font": {"size": 16}},
             domain={'x': [0.34, 0.66], 'y': [0, 1]},
             gauge={
                 'axis': {'range': [0, 5]},  # Definir el rango de la escala de 0 a 5
@@ -93,7 +97,7 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
 
     fig.update_layout(
         width=1000,  # Ancho en píxeles
-        height=250  # Alto en píxeles (mayor para el gauge)
+        height=300  # Alto en píxeles (mayor para el gauge)
     )
     
     return fig
@@ -421,16 +425,123 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
             html += f"<h4 style='color: #2b3ef8; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
             for _, row in group_data.iterrows():
                 html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
-        elif group == 'Goalkeeping':
-            html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
-            for _, row in group_data.iterrows():
-                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"   
 
     for group, group_data in grouped_stats:
-        if group != 'Match overview' and group != 'Goalkeeping':
-            html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
-            for _, row in group_data.iterrows():
-                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
+        if group != 'Match overview':
+            if group == 'Goalkeeping':
+                html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
+                for _, row in group_data.iterrows():
+                    html += f"<p>{row['name']}: {int(row['Valor'])}</p>"   
+            else:
+                html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
+                for _, row in group_data.iterrows():
+                    html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
 
     html += "</div>"
     return html
+
+def ajuste_polinomial(x, y, grado=8):
+    """Realiza un ajuste polinomial de los datos y retorna valores ajustados."""
+    coeficientes = np.polyfit(x, y, grado)
+    polinomio = np.poly1d(coeficientes)
+    return polinomio(x)
+
+def get_grafico_match_momentum(df, color_home, color_away, selected_team, opponent_team, condicion_selected):
+    """
+    Genera un gráfico de momentum del partido con colores y nombres de equipos definidos por parámetros.
+    
+    Parameters:
+        df (DataFrame): DataFrame con datos de momentum.
+        color_home (str): Color para el equipo local.
+        color_away (str): Color para el equipo visitante.
+        selected_team (str): Nombre del equipo seleccionado.
+        opponent_team (str): Nombre del equipo oponente.
+        condicion_selected (str): Indica si el equipo seleccionado es "Local" o "Visitante".
+    """
+    # Procesar los datos para separar los valores positivos y negativos de momentum
+    momentum_positivo = df[df['value'] > 0]
+    momentum_negativo = df[df['value'] < 0]
+
+    # Asignar colores basados en la condición
+    color_selected = color_home if condicion_selected == "Local" else color_away
+    color_opponent = color_away if condicion_selected == "Local" else color_home
+
+    # Crear el gráfico de Plotly
+    fig = go.Figure()
+
+    # Momentum positivo (equipo seleccionado)
+    fig.add_trace(go.Bar(
+        x=momentum_positivo['minute'],
+        y=momentum_positivo['value'],
+        name=selected_team,
+        marker_color=color_selected
+    ))
+
+    # Momentum negativo (equipo oponente)
+    fig.add_trace(go.Bar(
+        x=momentum_negativo['minute'],
+        y=momentum_negativo['value'],
+        name=opponent_team,
+        marker_color=color_opponent
+    ))
+
+    # Añadir línea de tendencia polinomial para el equipo seleccionado
+    if not momentum_positivo.empty:
+        x_positivo = momentum_positivo['minute']
+        y_positivo = momentum_positivo['value']
+        y_tendencia_positiva = ajuste_polinomial(x_positivo, y_positivo)
+        
+        fig.add_trace(go.Scatter(
+            x=x_positivo, 
+            y=y_tendencia_positiva, 
+            mode='lines', 
+            name=f'Tendencia {selected_team}', 
+            line=dict(color=color_selected, width=2)
+        ))
+
+    # Añadir línea de tendencia polinomial para el equipo oponente
+    if not momentum_negativo.empty:
+        x_negativo = momentum_negativo['minute']
+        y_negativo = -momentum_negativo['value']  # Tomar valor absoluto para el ajuste
+        y_tendencia_negativa = ajuste_polinomial(x_negativo, y_negativo)
+        
+        fig.add_trace(go.Scatter(
+            x=x_negativo, 
+            y=-y_tendencia_negativa, 
+            mode='lines', 
+            name=f'Tendencia {opponent_team}', 
+            line=dict(color=color_opponent, width=2)
+        ))
+
+    fig.update_layout(
+        title=dict(
+            text="Momentum de presión del partido",  # Texto del título
+            x=0.5,  # Centrar horizontalmente
+            xanchor="center",  # Anclaje al centro
+            font=dict(size=18)  # Tamaño del título
+        ),
+        xaxis_title="Minuto",
+        yaxis_title="Momentum",
+        template="plotly_dark",
+        barmode='relative',
+        xaxis=dict(
+            showgrid=False,  # Ocultar cuadrícula en el eje x
+        ),
+        yaxis=dict(
+            showgrid=False,  # Ocultar cuadrícula en el eje y
+            tickmode='array',  # Modo de marcas: array (sin marcas)
+            tickvals=[]  # Valores de marcas vacío (ningún valor visible)
+        ),
+        legend=dict(
+            orientation="h",  # Leyenda en horizontal
+            yanchor="top",    # Anclada al borde superior
+            y=-0.25,           # Colocada debajo del gráfico
+            xanchor="center", # Centrada horizontalmente
+            x=0.5,            # Posicionada al centro
+            font=dict(size=10)  # Reducir tamaño de la fuente
+        )
+    )
+
+    
+    # Retornar el gráfico de Plotly
+    return fig

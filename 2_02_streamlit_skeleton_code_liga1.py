@@ -8,7 +8,8 @@ import plotly.graph_objects as go
 from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
-    get_match_details, 
+    get_match_details, load_match_momentum,
+    #load_heatmaps
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -17,7 +18,8 @@ from streamlit_graphs_liga1 import (
     get_follow_up_graph,
     get_accumulated_graph,
     mostrar_tarjeta_pain_points,
-    generar_html_equipo
+    generar_html_equipo,
+    get_grafico_match_momentum,
 )
 
 st.set_page_config(
@@ -142,11 +144,21 @@ if average_positions:
         selected_average_position_df = average_position_df[average_position_df['team'] == selected_team]
         opponent_average_position_df = average_position_df[average_position_df['team'] == opponent_team]
 # =======================
+# Obtener Momentum de Presion
+# =======================
+round_momentums = load_match_momentum(selected_year, selected_tournament, round_number)
+if round_momentums:
+    selected_match_id = str(selected_match['match_id'])
+    if selected_match_id in round_momentums:
+        match_momentum = round_momentums[selected_match_id]
+
+# =======================
 # Pestaña: Detalles del Partido
 # =======================
 with tabs[0]:
     def filter_by_period(stats, period):
         return stats[stats['period'] == "ALL"] if period == "COMPLETO" else stats[stats['period'] == period]
+    
     # Cargar y procesar datos
     round_data = load_round_statistics(selected_year, selected_tournament, round_number)
     if round_data:
@@ -173,7 +185,7 @@ with tabs[0]:
             red_cards_away = away_stats[away_stats['name'] == 'Red cards']['Valor'].sum()
             # Validar tarjetas amarillas
             yellow_cards_home = home_stats[home_stats['name'] == 'Yellow cards']['Valor'].sum()
-            yellow_cards_away = away_stats[away_stats['name'] == 'Yellow cards']['Valor'].sum()
+            yellow_cards_away = away_stats[home_stats['name'] == 'Yellow cards']['Valor'].sum()
             # Quita las filas de tarjetas rojas y amarillas
             home_stats = home_stats[~home_stats['name'].isin(['Red cards', 'Yellow cards'])]
             away_stats = away_stats[~away_stats['name'].isin(['Red cards', 'Yellow cards'])]
@@ -200,15 +212,31 @@ with tabs[0]:
             )
 
             # Contenedor principal para mostrar ambos equipos en tres columnas
-            html_content = f"""
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex: 1;">{html_local}</div>
-                    <div style="flex: 1;"></div>
-                    <div style="flex: 1;">{html_visitante}</div>
-                </div>
-                """
-            st.markdown(html_content, unsafe_allow_html=True)
-            
+            col1, col2, col3 = st.columns(3)
+
+            # Mostrar equipo local en la primera columna
+            with col1:
+                st.markdown(html_local, unsafe_allow_html=True)
+
+            # Dejar la segunda columna para el gráfico de momentum
+            with col2:
+                # Generar gráfico de momentum
+                fig = get_grafico_match_momentum(
+                    df=match_momentum,
+                    color_home=home_primary_color,
+                    color_away=away_primary_color,
+                    selected_team=selected_team,
+                    opponent_team=opponent_team,
+                    condicion_selected=match_details['condicion_selected']
+                )
+                # Mostrar el gráfico
+                st.plotly_chart(fig, use_container_width=True)
+
+            # Mostrar equipo visitante en la tercera columna
+            with col3:
+                st.markdown(html_visitante, unsafe_allow_html=True)
+
+
         else:
             st.warning(f"No se encontraron datos para el match_id: {selected_match_id}")
     else:
@@ -285,22 +313,22 @@ with tabs[1]:
                 if players_stats.empty and opponent_players_stats.empty:
                     st.warning("Sin datos a profundidad de los jugadores.")
                 else:
-                    col1, col2 = st.columns(2)
+                    col1, col2 , col3 = st.columns(3)
                     with col1:
-                        st.subheader(f"Equipo titular {selected_team}")
+                        st.markdown(f"XI titular {selected_team}")
                         st.dataframe(selected_titulares)
                         st.subheader(f"Ingresos")
                         st.dataframe(selected_ins)
-                        st.subheader(f"Reemplazados")
+                        st.subheader(f"Cambios / Expulsados")
                         st.dataframe(selected_outs)
 
-                    with col2:
+                    with col3:
                         
-                        st.subheader(f"Equipo titular {opponent_team}")
+                        st.markdown(f"XI titular {opponent_team}")
                         st.dataframe(opponent_titulares)
                         st.subheader(f"Ingresos")
                         st.dataframe(opponent_ins)
-                        st.subheader(f"Reemplazados")
+                        st.subheader(f"Cambios / Expulsados")
                         st.dataframe(opponent_outs)
 
             except Exception as e:
@@ -339,6 +367,3 @@ with tabs[2]:
             st.write("Puntos de Presión necesarios para competir por el torneo:", resultados["pain_points_posibles"])
             mostrar_tarjeta_pain_points()
             st.warning(f"Próximamente: \n - Evolución de tabla de posiciones por ronda \n - Compara puntos de presión conseguidos con otros equipos")
-
-
-
