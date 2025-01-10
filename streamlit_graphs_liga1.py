@@ -440,12 +440,14 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
     html += "</div>"
     return html
 
-def ajuste_polinomial(x, y, grado=8):
-    """Realiza un ajuste polinomial de los datos y retorna valores ajustados."""
-    coeficientes = np.polyfit(x, y, grado)
-    polinomio = np.poly1d(coeficientes)
-    return polinomio(x)
+from scipy.interpolate import CubicSpline
 
+def ajuste_spline_cubico(x, y):
+    """
+    Realiza un ajuste con spline cúbico de los datos y retorna valores ajustados.
+    """
+    spline = CubicSpline(x, y)
+    return spline(x)
 def get_grafico_match_momentum(df, color_home, color_away, selected_team, opponent_team, condicion_selected):
     """
     Genera un gráfico de momentum del partido con colores y nombres de equipos definidos por parámetros.
@@ -489,7 +491,7 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
     if not momentum_positivo.empty:
         x_positivo = momentum_positivo['minute']
         y_positivo = momentum_positivo['value']
-        y_tendencia_positiva = ajuste_polinomial(x_positivo, y_positivo)
+        y_tendencia_positiva = ajuste_spline_cubico(x_positivo, y_positivo)
         
         fig.add_trace(go.Scatter(
             x=x_positivo, 
@@ -503,7 +505,7 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
     if not momentum_negativo.empty:
         x_negativo = momentum_negativo['minute']
         y_negativo = -momentum_negativo['value']  # Tomar valor absoluto para el ajuste
-        y_tendencia_negativa = ajuste_polinomial(x_negativo, y_negativo)
+        y_tendencia_negativa = ajuste_spline_cubico(x_negativo, y_negativo)
         
         fig.add_trace(go.Scatter(
             x=x_negativo, 
@@ -512,6 +514,22 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
             name=f'Tendencia {opponent_team}', 
             line=dict(color=color_opponent, width=2)
         ))
+
+    # Añadir líneas verticales en cada intervalo de 15 minutos, omitiendo 0 y 90, y resaltando el minuto 45
+    for minute in range(15, int(df['minute'].max()) + 1, 15):
+        if minute != 90:
+            color_line = "gold" if minute == 45 else "gray"  # Color ámbar dorado para el minuto 45
+            fig.add_vline(
+                x=minute,
+                line=dict(
+                    color=color_line,
+                    dash="dash",
+                    width=1.5 if minute == 45 else 1  
+                ),
+                opacity=0.7
+            )
+
+
 
     fig.update_layout(
         title=dict(
@@ -522,7 +540,7 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
         ),
         xaxis_title="Minuto",
         yaxis_title="Momentum",
-        template="plotly_dark",
+        #template="plotly_dark",
         barmode='relative',
         xaxis=dict(
             showgrid=False,  # Ocultar cuadrícula en el eje x
@@ -542,6 +560,5 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
         )
     )
 
-    
     # Retornar el gráfico de Plotly
     return fig

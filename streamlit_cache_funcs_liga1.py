@@ -95,19 +95,7 @@ def load_round_player_statistics(year_selected, torneo_selected, round_number):
     except FileNotFoundError:
         st.error(f"Archivo no encontrado: {file_path}")
         return None
-
-def get_match_details(matches_for_team_tournament, round_number, home_id, away_id):
-    """
-    Filtra los detalles del partido basado en round_number, home_id y away_id.
-    """
-    match_details = matches_for_team_tournament[
-        (matches_for_team_tournament['round_number'] == round_number) &
-        (matches_for_team_tournament['home_id'] == home_id) &
-        (matches_for_team_tournament['away_id'] == away_id)
-    ]
-    return match_details
-
-
+@st.cache_data
 def get_match_details(selected_match, selected_team):
     """
     Obtiene detalles del partido seleccionado y genera la información necesaria para renderizar en Streamlit.
