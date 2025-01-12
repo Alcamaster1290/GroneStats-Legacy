@@ -3,6 +3,9 @@ import plotly.graph_objects as go
 import numpy as np
 import matplotlib.colors as mcolors
 from streamlit_cache_funcs_liga1 import get_team_id
+import matplotlib.pyplot as plt
+from mplsoccer.pitch import VerticalPitch
+from scipy.interpolate import CubicSpline
 
 def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
     """
@@ -440,14 +443,15 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
     html += "</div>"
     return html
 
-from scipy.interpolate import CubicSpline
 
+@st.cache_data
 def ajuste_spline_cubico(x, y):
     """
     Realiza un ajuste con spline cúbico de los datos y retorna valores ajustados.
     """
     spline = CubicSpline(x, y)
     return spline(x)
+@st.cache_data
 def get_grafico_match_momentum(df, color_home, color_away, selected_team, opponent_team, condicion_selected):
     """
     Genera un gráfico de momentum del partido con colores y nombres de equipos definidos por parámetros.
@@ -543,6 +547,8 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
         barmode='relative',
         xaxis=dict(
             showgrid=False,  # Ocultar cuadrícula en el eje x
+            tickvals=list(range(0, int(df['minute'].max()) + 1, 15)),  # Valores de 0 a 15 y de 15 en 15
+
         ),
         yaxis=dict(
             showgrid=False,  # Ocultar cuadrícula en el eje y
@@ -561,4 +567,83 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
     )
 
     # Retornar el gráfico de Plotly
+    return fig
+@st.cache_data
+def generar_formacion_basica(formacion, df_xi_titular):
+    """
+    Genera una representación de la formación en un VerticalPitch con posiciones correctas.
+
+    Args:
+        formacion (str): Formación en formato 'D-M-F'.
+        df_xi_titular (DataFrame): DataFrame con información de los jugadores.
+    
+    Returns:
+        fig: Figura matplotlib para usar con st.pyplot().
+    """
+    # Dividir la formación en defensas, mediocampistas y delanteros
+    defensas, mediocampistas, delanteros = map(int, formacion.split('-'))
+
+    # Inicializar VerticalPitch
+    pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+    fig, ax = pitch.draw(figsize=(8, 12))  # Crear la figura
+
+    # Dividir la cancha en 15 segmentos (5 filas x 3 columnas por mitad)
+    y_positions = [20, 40, 60, 80, 100]  # Filas (eje vertical)
+    x_positions = [20, 40, 60, 80, 100]  # Columnas (eje horizontal)
+
+    # Asignar posiciones en la cancha
+    lineas = [
+        (defensas, 20),  # Defensas (cerca del arco propio)
+        (mediocampistas, 50),  # Mediocampistas (medio campo)
+        (delanteros, 80)  # Delanteros (cerca del arco rival)
+    ]
+
+    # Ordenar jugadores por posición
+    jugadores_defensa = df_xi_titular[df_xi_titular['position'] == 'D']
+    jugadores_medio = df_xi_titular[df_xi_titular['position'] == 'M']
+    jugadores_ataque = df_xi_titular[df_xi_titular['position'] == 'F']
+    arquero = df_xi_titular[df_xi_titular['position'] == 'G']
+
+    jugadores = {
+        'D': jugadores_defensa,
+        'M': jugadores_medio,
+        'F': jugadores_ataque
+    }
+
+    # Colocar al arquero en el centro del arco inferior
+    pitch.scatter(5, 50, ax=ax, color='red', s=300)  # Scatter del arquero
+    ax.text(50, 8, arquero['name'].iloc[0], color='white', fontsize=10, ha='center', va='center')
+
+    # Asignar jugadores según su posición y formación
+    for (cantidad, y), tipo in zip(lineas, ['D', 'M', 'F']):
+        jugadores_linea = jugadores[tipo].head(cantidad)
+        x_step = len(x_positions) // cantidad if cantidad > 0 else 1
+        x_indices = [x_positions[i] for i in range(0, len(x_positions), x_step)][:cantidad]
+
+
+        if tipo == 'M':
+            j=-1
+            for i, jugador in enumerate(jugadores_linea.itertuples()):
+                x = x_indices[i]
+                pitch.scatter(y, x-6, ax=ax, color='blue', s=300)  # Scatter del jugador
+                ax.text(x-6, y + 2*j, jugador.name, color='white', fontsize=13, ha='center', va='center')
+                j*= -1
+
+        elif tipo == 'F':
+            j = -1
+            for i, jugador in enumerate(jugadores_linea.itertuples()):
+                x = x_indices[i]
+                pitch.scatter(y, x+8, ax=ax, color='blue', s=300)
+                ax.text(x+8, y + 2*j, jugador.name, color='white', fontsize=13, ha='center', va='center')
+                j*= -1
+        else:
+            j = -1
+            for i, jugador in enumerate(jugadores_linea.itertuples()):
+                x = x_indices[i]
+                pitch.scatter(y, x+8, ax=ax, color='blue', s=300)
+                ax.text(x+8, y + 2*j, jugador.name, color='white', fontsize=13, ha='center', va='center')
+                j*= -1
+
+    # Ajustar y devolver la figura
+    ax.set_title(f"Formación: {formacion}", fontsize=14, color='white')
     return fig

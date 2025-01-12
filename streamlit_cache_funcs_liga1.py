@@ -189,3 +189,31 @@ def get_match_details(selected_match, selected_team):
         "home_team_colors": home_team_colors,
         "away_team_colors": away_team_colors,
     }
+
+def obtener_formacion(df_xi_titular):
+    # Inicializar los contadores para defensores, mediocampistas y delanteros
+    defensores = 0
+    mediocampistas = 0
+    delanteros = 0
+    
+    # Contar las posiciones en el dataframe
+    for _, row in df_xi_titular.iterrows():
+        if row['position'] == 'D':  # Defensores
+            defensores += 1
+        elif row['position'] == 'M':  # Mediocampistas
+            mediocampistas += 1
+        elif row['position'] == 'F':  # Delanteros
+            delanteros += 1
+        elif row['position'] == 'G':  # Arquero
+            continue  # El arquero no cuenta para la formación
+
+    # Ajustar mediocampistas y defensores si hay más de 5 mediocampistas
+    if mediocampistas > 5:
+        mediocampistas -= 2  # Restar 2 mediocampistas
+        defensores += 2      # Sumar esos 2 al contador de defensores
+
+    # Crear la cadena de la formación: 'D-M-F'
+    formacion = f"{defensores}-{mediocampistas}-{delanteros}"
+    
+    return formacion
+

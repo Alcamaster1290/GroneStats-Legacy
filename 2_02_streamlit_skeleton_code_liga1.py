@@ -9,7 +9,7 @@ from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
     get_match_details, load_match_momentum,
-    load_shotmaps,
+    load_shotmaps, obtener_formacion
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -20,6 +20,7 @@ from streamlit_graphs_liga1 import (
     mostrar_tarjeta_pain_points,
     generar_html_equipo,
     get_grafico_match_momentum,
+    generar_formacion_basica,
 )
 
 st.set_page_config(
@@ -155,7 +156,7 @@ if round_momentums:
     if selected_match_id in round_momentums:
         match_momentum = round_momentums[selected_match_id]
     else:
-        match_momentum = None
+        match_momentum = pd.DataFrame()
 # =======================
 # Obtener Shotmap
 # =======================
@@ -164,7 +165,7 @@ if shotmaps:
     if selected_match_id in shotmaps:
         shotmap = shotmaps[selected_match_id]
     else:
-        shotmap = None
+        shotmap = pd.DataFrame()
 
 # =======================
 # Obtener Detalles del Partido (Estadísticas)
@@ -249,7 +250,7 @@ if not selected_average_position_df.empty and not opponent_average_position_df.e
     opponent_outs = opponent_outs.merge(opponent_average_position_df, on='id', how='left')
 else:
     with tabs[1]:
-        st.warning("No se encontraron posiciones promedio para los jugadores de este partido.")
+        st.warning("No se registraron posiciones promedio para los jugadores en este partido.")
 # =======================
 # PESTAÑAS DE STREAMLIT
 # =======================
@@ -309,8 +310,7 @@ with tabs[0]:
 
     # Dejar la segunda columna para el gráfico de momentum
     with col2:
-
-        if shotmap is None:
+        if shotmap.empty:
             st.empty()
         else:
             goals_df = shotmap[shotmap['shotType'] == 'goal']
@@ -322,7 +322,7 @@ with tabs[0]:
 
                 for _, row in goals_df.iterrows():
                     minute = f"{row['time']}'"
-                    if not pd.isna(row["addedTime"]):  # Verificar si hay tiempo añadido
+                    if 'addedTime' in row and not pd.isna(row["addedTime"]):  # Verificar si hay tiempo añadido
                         minute = f"{row['time']}+{int(row['addedTime'])}'"
                     
                     # Determinar el equipo según las condiciones
@@ -338,36 +338,21 @@ with tabs[0]:
                 
                 # Mostrar goles en la primera columna
                 if condicion == "Local":
-                    with e1:
-                        equipo_1 = selected_team
-                        if goles_por_equipo[equipo_1]: 
-                            st.markdown(f"**{equipo_1}**")
-                            for gol in goles_por_equipo[equipo_1]:
+                    equipos = [(selected_team, e1), (opponent_team, e2)]
+                else:
+                    equipos = [(opponent_team, e1), (selected_team, e2)]
+
+                for equipo, column in equipos:
+                    with column:
+                        if goles_por_equipo[equipo]:
+                            for gol in goles_por_equipo[equipo]:
                                 st.markdown(f"- {gol}")
 
-                    # Mostrar goles en la segunda columna
-                    with e2:
-                        equipo_2 = opponent_team
-                        if goles_por_equipo[equipo_2]:  
-                            st.markdown(f"**{equipo_2}**")
-                            for gol in goles_por_equipo[equipo_2]:
-                                st.markdown(f"- {gol}")
-                else: 
-                    with e1:
-                        equipo_1 = opponent_team
-                        if goles_por_equipo[equipo_1]:
-                            for gol in goles_por_equipo[equipo_1]:
-                                st.markdown(f"- {gol}")
-                    with e2:
-                        equipo_2 = selected_team
-                        if goles_por_equipo[equipo_2]:
-                            for gol in goles_por_equipo[equipo_2]:
-                                st.markdown(f"- {gol}")
             else:
                 st.write("No se registraron goles en los datos.")
 
 
-        if match_momentum is None:
+        if match_momentum.empty:
             st.empty()
         else:
             fig = get_grafico_match_momentum(
@@ -391,6 +376,12 @@ with tabs[0]:
 with tabs[1]:
     st.header("Análisis de Jugadores")
     
+    selected_formacion = obtener_formacion(selected_titulares)
+    equipo_titular = selected_titulares 
+    st.text(f"Formación inicial de {selected_team}: {selected_formacion}")
+    opponent_formacion = obtener_formacion(opponent_titulares)
+    st.text(f"Formación inicial de {opponent_team}: {opponent_formacion}")
+
     try:
         selected_position = st.segmented_control("Posicion\n",options=["TODOS","DEFENSAS", "MEDIOCENTROS", "DELANTEROS"],default="TODOS")
         if selected_position == "DEFENSAS":
@@ -416,9 +407,12 @@ with tabs[1]:
         else:
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown(f"XI titular {selected_team}")
+                st.markdown(f"Equipo titular {selected_team}")
                 st.dataframe(selected_titulares)
-                if not selected_ins.empty:
+                if selected_outs.empty and not selected_ins.empty:
+                    st.subheader(f"Suplentes")
+                    st.dataframe(selected_ins)
+                elif not selected_ins.empty:
                     st.subheader(f"Ingresos")
                     st.dataframe(selected_ins)
                 if not selected_outs.empty:
@@ -426,13 +420,20 @@ with tabs[1]:
                     st.dataframe(selected_outs)
 
             with col2:
-                if shotmap:
+                if not shotmap.empty:
                     st.table(shotmap)
+                if selected_outs.empty and not selected_ins.empty:
+                    fig = generar_formacion_basica(selected_formacion, equipo_titular)
+                    st.write("Formación Inicial")
+                    st.pyplot(fig,use_container_width=True)
 
             with col3:
-                st.markdown(f"XI titular {opponent_team}")
+                st.markdown(f"Equipo titular {opponent_team}")
                 st.dataframe(opponent_titulares)
-                if not opponent_ins.empty:
+                if opponent_outs.empty and not opponent_ins.empty:
+                    st.subheader(f"Suplentes")
+                    st.dataframe(opponent_ins)
+                elif not opponent_ins.empty:
                     st.subheader(f"Ingresos")
                     st.dataframe(opponent_ins)
                 if not opponent_outs.empty:
