@@ -467,30 +467,31 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
     # Asignar colores basados en la condición
     color_selected = color_home if condicion_selected == "Local" else color_away
     color_opponent = color_away if condicion_selected == "Local" else color_home
-
+    momentum_selected = momentum_positivo if condicion_selected == "Local" else momentum_negativo
+    momentum_opponent = momentum_negativo if condicion_selected == "Local" else momentum_positivo
     # Crear el gráfico de Plotly
     fig = go.Figure()
 
     # Momentum positivo (equipo seleccionado)
     fig.add_trace(go.Bar(
-        x=momentum_positivo['minute'],
-        y=momentum_positivo['value'],
+        x=momentum_selected['minute'],
+        y=momentum_selected['value'],
         name=selected_team,
         marker_color=color_selected
     ))
 
     # Momentum negativo (equipo oponente)
     fig.add_trace(go.Bar(
-        x=momentum_negativo['minute'],
-        y=momentum_negativo['value'],
+        x=momentum_opponent['minute'],
+        y=momentum_opponent['value'],
         name=opponent_team,
         marker_color=color_opponent
     ))
 
     # Añadir línea de tendencia polinomial para el equipo seleccionado
-    if not momentum_positivo.empty:
-        x_positivo = momentum_positivo['minute']
-        y_positivo = momentum_positivo['value']
+    if not momentum_selected.empty:
+        x_positivo = momentum_selected['minute']
+        y_positivo = momentum_selected['value']
         y_tendencia_positiva = ajuste_spline_cubico(x_positivo, y_positivo)
         
         fig.add_trace(go.Scatter(
@@ -502,9 +503,9 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
         ))
 
     # Añadir línea de tendencia polinomial para el equipo oponente
-    if not momentum_negativo.empty:
-        x_negativo = momentum_negativo['minute']
-        y_negativo = -momentum_negativo['value']  # Tomar valor absoluto para el ajuste
+    if not momentum_opponent.empty:
+        x_negativo = momentum_opponent['minute']
+        y_negativo = -momentum_opponent['value']  # Tomar valor absoluto para el ajuste
         y_tendencia_negativa = ajuste_spline_cubico(x_negativo, y_negativo)
         
         fig.add_trace(go.Scatter(
@@ -529,8 +530,6 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
                 opacity=0.7
             )
 
-
-
     fig.update_layout(
         title=dict(
             text="Momentum de presión del partido",  # Texto del título
@@ -548,7 +547,8 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
         yaxis=dict(
             showgrid=False,  # Ocultar cuadrícula en el eje y
             tickmode='array',  # Modo de marcas: array (sin marcas)
-            tickvals=[]  # Valores de marcas vacío (ningún valor visible)
+            tickvals=[],  # Valores de marcas vacío (ningún valor visible)
+            range=[-110, 110]  # Fijar la escala del eje y entre -100 y 100
         ),
         legend=dict(
             orientation="h",  # Leyenda en horizontal
