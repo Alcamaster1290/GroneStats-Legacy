@@ -124,6 +124,8 @@ def get_match_details(selected_match, selected_team):
     match_id = selected_match['match_id']
     round_number = selected_match['round_number']
     home_id = selected_match['home_id']
+    home = selected_match['home']
+    away = selected_match['away']
     away_id = selected_match['away_id']
     home_score = selected_match['home_score']
     away_score = selected_match['away_score']
@@ -174,6 +176,8 @@ def get_match_details(selected_match, selected_team):
 
     return {
         "match_id": match_id,
+        "home": home,
+        "away": away,
         "round_number": round_number,
         "home_id": home_id,
         "away_id": away_id,
@@ -216,4 +220,99 @@ def obtener_formacion(df_xi_titular):
     formacion = f"{defensores}-{mediocampistas}-{delanteros}"
     
     return formacion
+
+def apply_color_based_on_shot_type(shot_type):
+    if shot_type == 'block':
+        return 'coral'
+    elif shot_type == 'miss':
+        return 'darkred'
+    elif shot_type == 'goal':
+        return 'darkgreen'
+    elif shot_type in ['save', 'post']:
+        return 'darkgoldenrod'
+    else:
+        return 'gray'
+
+def procesar_tiros(df_shotmaps, condicion):
+    df_shotmaps['color'] = df_shotmaps['shotType'].apply(apply_color_based_on_shot_type)
+    shots_on_target = ['save', 'goal']
+    shots_off_target = ['miss', 'post', 'block']
+    df_shots_on_target = df_shotmaps[df_shotmaps['shotType'].isin(shots_on_target)]
+    df_shots_off_target = df_shotmaps[df_shotmaps['shotType'].isin(shots_off_target)]
+    if condicion == 'Local':
+        df_shots_on_target_local = df_shots_on_target[df_shots_on_target['isHome']]
+        df_shots_on_target_away = df_shots_on_target[~df_shots_on_target['isHome']]
+        df_shots_off_target_local = df_shots_off_target[df_shots_off_target['isHome']]
+        df_shots_off_target_away = df_shots_off_target[~df_shots_off_target['isHome']]
+    else:
+        df_shots_on_target_local = df_shots_on_target[~df_shots_on_target['isHome']]
+        df_shots_on_target_away = df_shots_on_target[df_shots_on_target['isHome']]
+        df_shots_off_target_local = df_shots_off_target[~df_shots_off_target['isHome']]
+        df_shots_off_target_away = df_shots_off_target[df_shots_off_target['isHome']]
+    
+    return df_shots_on_target_local, df_shots_on_target_away, df_shots_off_target_local, df_shots_off_target_away
+
+def mostrar_tiros_y_goles(df_shotmaps, condicion, selected_team, opponent_team):
+    # Procesar los tiros y obtener los DataFrames
+    df_shots_on_target_local, df_shots_on_target_away, df_shots_off_target_local, df_shots_off_target_away = procesar_tiros(
+        df_shotmaps, condicion)
+
+    # Determinar los DataFrames según la condición
+    if condicion == 'Local':
+        df_shots_on_target_selected = df_shots_on_target_local
+        df_shots_on_target_opponent = df_shots_on_target_away
+        df_shots_off_target_selected = df_shots_off_target_local
+        df_shots_off_target_opponent = df_shots_off_target_away
+    else:
+        df_shots_on_target_selected = df_shots_on_target_away
+        df_shots_on_target_opponent = df_shots_on_target_local
+        df_shots_off_target_selected = df_shots_off_target_away
+        df_shots_off_target_opponent = df_shots_off_target_local
+
+    # Extraer y mostrar los goles
+    st.subheader("Goles")
+    goals_df = df_shotmaps[df_shotmaps['shotType'] == 'goal']
+    
+    if not goals_df.empty:
+        goals_df = goals_df.sort_values(by='time')
+        goles_por_equipo = {selected_team: [], opponent_team: []}
+
+        for _, row in goals_df.iterrows():
+            minute = f"{row['time']}'"
+            if 'addedTime' in row and not pd.isna(row["addedTime"]):  # Verificar si hay tiempo añadido
+                minute = f"{row['time']}+{int(row['addedTime'])}'"
+            if row['situation'] == 'penalty':
+                minute += " (Penal)"
+            if row['goalType'] == 'own':
+                minute += " (AG)"
+            
+            # Determinar el equipo según las condiciones
+            if row["isHome"]:
+                equipo = selected_team if condicion == "Local" else opponent_team
+            else:
+                equipo = opponent_team if condicion == "Local" else selected_team
+            
+            # Agregar al equipo correspondiente
+            goles_por_equipo[equipo].append(f"{row['name']} - {minute}")
+        
+        e1, e2 = st.columns(2)
+        
+        # Mostrar goles en columnas
+        equipos = [(selected_team if condicion == "Local" else opponent_team, e1), 
+                   (opponent_team if condicion == "Local" else selected_team, e2)]
+
+        for equipo, column in equipos:
+            with column:
+                for gol in goles_por_equipo[equipo]:
+                    st.markdown(f"- {gol}")
+
+    st.divider()
+
+    # Devolver los DataFrames de tiros al arco y fuera para ambos equipos
+    return {
+        'tiros_al_arco_local': df_shots_on_target_selected,
+        'tiros_al_arco_away': df_shots_on_target_opponent,
+        'tiros_fuera_local': df_shots_off_target_selected,
+        'tiros_fuera_away': df_shots_off_target_opponent
+    }
 

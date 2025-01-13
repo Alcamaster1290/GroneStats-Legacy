@@ -9,7 +9,7 @@ from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
     get_match_details, load_match_momentum,
-    load_shotmaps, obtener_formacion
+    load_shotmaps, obtener_formacion, mostrar_tiros_y_goles, 
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -21,6 +21,9 @@ from streamlit_graphs_liga1 import (
     generar_html_equipo,
     get_grafico_match_momentum,
     generar_formacion_basica,
+    graficar_tiros_al_arco,
+    graficar_posicion_tiros_a_puerta,
+    graficar_posicion_tiros_fuera,
 )
 
 st.set_page_config(
@@ -107,6 +110,12 @@ imprimir_tarjetas(match_details, selected_team)
 st.divider()
 
 # Extraer valores únicos como escalares
+home_id = match_details['home_id']
+away_id = match_details['away_id']
+
+home_name = match_details['home']
+away_name = match_details['away']
+
 home_score = match_details['home_score']
 away_score = match_details['away_score']
 
@@ -123,6 +132,9 @@ opponent_team = match_details['opponent_team']
 round_number = match_details['round_number']
 condicion = match_details['condicion_selected']
 
+# =======================
+# Crear e imprimir score 
+# =======================
 if condicion== "Local":
     fig = crear_grafico_score(home_score, away_score, selected_team,opponent_team,pain_points)
 elif condicion == "Visitante":
@@ -177,6 +189,14 @@ if round_data:
     columns_to_show = ['key', 'name', 'homeValue', 'awayValue', 'period', 'valueType', 'group', 'statisticsType']
     home_stats = match_sheet_data[columns_to_show].rename(columns={'homeValue': 'Valor'})
     away_stats = match_sheet_data[columns_to_show].rename(columns={'awayValue': 'Valor'})
+    # Diferenciar entre selected y opponnent
+    home_stats['team'] = home_name
+    away_stats['team'] = away_name
+    if home_stats['team'].iloc[0] == selected_team:
+        home_stats['team'] = selected_team
+        away_stats['team'] = opponent_team
+
+
 else:
     st.error("No se pudo cargar la información del partido.")
 
@@ -208,7 +228,7 @@ if selected_match_id in players_data:
             else:
                 continue
 
-    extra_columns = ['goodHighClaim', 'savedShotsFromInsideTheBox','totalKeeperSweeper', 'accurateKeeperSweeper',
+    extra_columns = ['redCards','yellowCards','goodHighClaim', 'savedShotsFromInsideTheBox','totalKeeperSweeper', 'accurateKeeperSweeper',
                         'bigChanceMissed', 'bigChanceCreated',
                         'outfielderBlock',
                         'penaltyConceded',
@@ -302,55 +322,13 @@ with tabs[0]:
     )
 
     # Contenedor principal para mostrar ambos equipos en tres columnas
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns([1, 4, 1])
 
     # Mostrar equipo local en la primera columna
     with col1:
         st.markdown(html_local, unsafe_allow_html=True)
 
-    # Dejar la segunda columna para el gráfico de momentum
     with col2:
-        if shotmap.empty:
-            st.empty()
-        else:
-            goals_df = shotmap[shotmap['shotType'] == 'goal']
-            st.subheader("Goles")
-            
-            if not goals_df.empty:
-                goals_df = goals_df.sort_values(by='time')
-                goles_por_equipo = {selected_team: [], opponent_team: []}
-
-                for _, row in goals_df.iterrows():
-                    minute = f"{row['time']}'"
-                    if 'addedTime' in row and not pd.isna(row["addedTime"]):  # Verificar si hay tiempo añadido
-                        minute = f"{row['time']}+{int(row['addedTime'])}'"
-                    
-                    # Determinar el equipo según las condiciones
-                    if row["isHome"]:
-                        equipo = selected_team if condicion == "Local" else opponent_team
-                    else:
-                        equipo = opponent_team if condicion == "Local" else selected_team
-                    
-                    # Agregar al equipo correspondiente
-                    goles_por_equipo[equipo].append(f"{row['name']} ({minute})")
-                
-                e1, e2 = st.columns(2)
-                
-                # Mostrar goles en la primera columna
-                if condicion == "Local":
-                    equipos = [(selected_team, e1), (opponent_team, e2)]
-                else:
-                    equipos = [(opponent_team, e1), (selected_team, e2)]
-
-                for equipo, column in equipos:
-                    with column:
-                        if goles_por_equipo[equipo]:
-                            for gol in goles_por_equipo[equipo]:
-                                st.markdown(f"- {gol}")
-
-            else:
-                st.write("No se registraron goles en los datos.")
-
 
         if match_momentum.empty:
             st.empty()
@@ -364,6 +342,27 @@ with tabs[0]:
             condicion_selected=condicion
             )
             st.plotly_chart(fig, use_container_width=True)
+
+        if shotmap.empty:
+            st.empty()
+        else:
+            resultados = mostrar_tiros_y_goles(shotmap, condicion, selected_team, opponent_team)
+            f1, f2 = st.columns(2)
+
+            with f1:
+                df_tiros_ot_local = resultados['tiros_al_arco_local']
+                df_tiros_off_local = resultados['tiros_fuera_local']
+                graficar_tiros_al_arco(df_tiros_ot_local, 'local')
+                graficar_posicion_tiros_a_puerta(df_tiros_ot_local, 'local')
+                graficar_posicion_tiros_fuera(df_tiros_off_local, 'local')
+
+            with f2:
+                df_tiros_ot_away = resultados['tiros_al_arco_away']
+                df_tiros_off_away = resultados['tiros_fuera_away']
+                graficar_tiros_al_arco(df_tiros_ot_away, 'visitante')
+                graficar_posicion_tiros_a_puerta(df_tiros_ot_away, 'visitante')
+                graficar_posicion_tiros_fuera(df_tiros_off_away, 'visitante')
+        
 
     # Mostrar equipo visitante en la tercera columna
     with col3:
@@ -381,6 +380,7 @@ with tabs[1]:
     st.text(f"Formación inicial de {selected_team}: {selected_formacion}")
     opponent_formacion = obtener_formacion(opponent_titulares)
     st.text(f"Formación inicial de {opponent_team}: {opponent_formacion}")
+    fig = generar_formacion_basica(selected_formacion, equipo_titular)
 
     try:
         selected_position = st.segmented_control("Posicion\n",options=["TODOS","DEFENSAS", "MEDIOCENTROS", "DELANTEROS"],default="TODOS")
@@ -421,9 +421,8 @@ with tabs[1]:
 
             with col2:
                 if not shotmap.empty:
-                    st.table(shotmap)
+                    st.warning("Aqui se mostrara el mapa del campo con las posiciones promedio y hexbins de tiros al arco")
                 if selected_outs.empty and not selected_ins.empty:
-                    fig = generar_formacion_basica(selected_formacion, equipo_titular)
                     st.write("Formación Inicial")
                     st.pyplot(fig,use_container_width=True)
 

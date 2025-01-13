@@ -1,10 +1,14 @@
 import streamlit as st
 import plotly.graph_objects as go
+import plotly.express as px
+import pandas as pd
 import numpy as np
 import matplotlib.colors as mcolors
 from streamlit_cache_funcs_liga1 import get_team_id
 import matplotlib.pyplot as plt
-from mplsoccer.pitch import VerticalPitch
+from matplotlib.patches import Patch
+from matplotlib.legend import Legend
+from mplsoccer.pitch import VerticalPitch , Pitch
 from scipy.interpolate import CubicSpline
 
 def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
@@ -534,6 +538,18 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
                 opacity=0.7
             )
 
+    # Agregar la zona gris entre -30 y 30 en el eje Y
+    fig.add_shape(
+        type="rect",
+        x0=0,
+        x1=df['minute'].max(),
+        y0=-30,
+        y1=30,
+        fillcolor="gray",
+        opacity=0.1,
+        line=dict(width=0)
+    )
+
     fig.update_layout(
         title=dict(
             text="Momentum de presión del partido",  # Texto del título
@@ -554,7 +570,7 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
             showgrid=False,  # Ocultar cuadrícula en el eje y
             tickmode='array',  # Modo de marcas: array (sin marcas)
             tickvals=[],  # Valores de marcas vacío (ningún valor visible)
-            range=[-110, 110]  # Fijar la escala del eje y entre -100 y 100
+            range=[-100, 100]  # Fijar la escala del eje y entre -100 y 100
         ),
         legend=dict(
             orientation="h",  # Leyenda en horizontal
@@ -568,6 +584,7 @@ def get_grafico_match_momentum(df, color_home, color_away, selected_team, oppone
 
     # Retornar el gráfico de Plotly
     return fig
+
 @st.cache_data
 def generar_formacion_basica(formacion, df_xi_titular):
     """
@@ -646,4 +663,204 @@ def generar_formacion_basica(formacion, df_xi_titular):
 
     # Ajustar y devolver la figura
     ax.set_title(f"Formación: {formacion}", fontsize=14, color='white')
+    return fig
+
+def graficar_posicion_tiros_fuera(df_shots_off_target, condicion):
+
+    # Configuración del pitch
+    pitch = VerticalPitch(
+        pitch_type='opta',
+        pitch_color='grass',
+        half=True,
+        goal_type='box',
+        linewidth=1.25,
+        line_color='black',
+        pitch_length=105,
+        pitch_width=68
+    )
+
+    # Crear la figura y el grid
+    fig, axs = pitch.grid(
+        figheight=10, title_height=0, endnote_space=0, 
+        title_space=0, axis=False, grid_height=0.82, 
+        endnote_height=0.01, grid_width=0.8,
+    )
+
+    # Título del gráfico
+    fig.suptitle(f'Posición de tiros fuera del {condicion}', fontsize=22)
+
+    # Crear hexbin y scatter plot
+    hexmap = pitch.hexbin(
+        x=100 - df_shots_off_target['x'], 
+        y=100 - df_shots_off_target['y'], 
+        ax=axs['pitch'], 
+        edgecolors='#f4f4f4',
+        gridsize=(6, 6), 
+        cmap='Reds', 
+        alpha=0.5
+    )
+
+    scatter = pitch.scatter(
+        x=100 - df_shots_off_target['x'], 
+        y=100 - df_shots_off_target['y'], 
+        ax=axs['pitch'], 
+        color=df_shots_off_target['color'], 
+        s=200, 
+        edgecolors='black', 
+        zorder=2, 
+        alpha=0.9
+    )
+
+    # Anotar los tiempos sobre los puntos
+    for _, row in df_shots_off_target.iterrows():
+        axs['pitch'].annotate(
+            text=row['time'], 
+            xy=(100 - row['y'], 100 - row['x']), 
+            color='white', 
+            ha='center', 
+            va='center',
+            fontsize=8, 
+            weight='bold', 
+            zorder=3
+        )
+
+    # Crear elementos de la leyenda
+    legend_elements = []
+    for _, row in df_shots_off_target.iterrows():
+        legend_elements.append(Patch(
+            facecolor=row['color'], 
+            edgecolor='black', 
+            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
+        ))
+
+    # Configuración de la leyenda
+    legend = axs['pitch'].legend(
+        handles=legend_elements, 
+        loc='lower left', 
+        bbox_to_anchor=(0.02, 0.02), 
+        frameon=True, 
+        fontsize=10
+    )
+    legend.get_frame().set_alpha(0.7)  # Fondo semi-transparente
+
+    # Ajustar diseño y mostrar
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    return fig
+
+
+def graficar_tiros_al_arco(df_shots_on_target, condicion):
+    # Procesar las coordenadas del DataFrame
+    df_coordenadas = df_shots_on_target['goalMouthCoordinates'].reset_index(drop=True)
+    dict_list = [eval(coord) for coord in df_coordenadas.tolist()]
+    df_goalzone = pd.DataFrame(dict_list)
+    df_goalzone['shotType'] = df_shots_on_target['shotType'].values
+    df_goalzone['situation'] = df_shots_on_target['situation'].values
+    df_goalzone['bodyPart'] = df_shots_on_target['bodyPart'].values
+    df_goalzone['goalMouthLocation'] = df_shots_on_target['goalMouthLocation'].values
+    df_goalzone['time'] = df_shots_on_target['time'].values
+    df_goalzone['shortName'] = df_shots_on_target['shortName'].values
+    df_goalzone['position'] = df_shots_on_target['position'].values
+    df_goalzone['color'] = df_shots_on_target['color'].values
+    if 'goalType' in df_shots_on_target.columns:
+        df_goalzone['goalType'] = df_shots_on_target['goalType'].values
+
+    # Crear scatter plot mejorado
+    fig = px.scatter(
+        df_goalzone, 
+        x='y', 
+        y='z', 
+        title=f'Ubicación de tiros a puerta del equipo {condicion}', 
+        labels={'y': 'Ancho', 'z': 'Altura'}, 
+        color='color',
+        color_discrete_map={'darkgreen': 'darkgreen', 'darkgoldenrod': 'darkgoldenrod', 'coral': 'coral', 'darkred': 'darkred'},
+        hover_data={'shortName': True, 'shotType': True, 'time': True, 'situation': True, 'bodyPart': True, 'goalMouthLocation': True, 'y': False, 'z': False, 'color': False},
+        size_max=20  # Ajustar tamaño máximo de puntos
+    )
+
+    # Personalizar los marcadores
+    fig.update_traces(marker=dict(size=12, line=dict(width=2, color='black')))
+
+    # Configuración del área de gol
+    fig.update_xaxes(autorange="reversed")
+    fig.add_shape(type="line", x0=45.4, y0=0, x1=45.4, y1=35.5, line=dict(color="Black", width=2))
+    fig.add_shape(type="line", x0=54.5, y0=0, x1=54.5, y1=35.5, line=dict(color="Black", width=2))
+    fig.add_shape(type="line", x0=45.4, y0=35.5, x1=54.5, y1=35.5, line=dict(color="Black", width=2))
+
+    # Ajustar ejes y apariencia
+    fig.update_xaxes(showgrid=False, visible=False, showticklabels=False, ticks="")
+    fig.update_yaxes(showgrid=False, visible=False, showticklabels=False, ticks="")
+    fig.update_layout(
+        showlegend=False,
+    )
+
+    # Mostrar el gráfico
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def graficar_posicion_tiros_a_puerta(df_shots_on_target, condicion):
+    from matplotlib.patches import Patch
+
+    pitch = VerticalPitch(
+        pitch_type='opta',
+        pitch_color='grass',
+        half=True,
+        goal_type='box',
+        linewidth=1.25,
+        line_color='black',
+        pitch_length=105,
+        pitch_width=68
+    )
+
+    fig, axs = pitch.grid(
+        figheight=10, title_height=0, endnote_space=0, 
+        title_space=0, axis=False, grid_height=0.82, 
+        endnote_height=0.01, grid_width=0.8,
+    )
+
+    # Dibujar hexbin y scatter
+    hexmap = pitch.hexbin(
+        x=100-df_shots_on_target['x'], 
+        y=100-df_shots_on_target['y'], 
+        ax=axs['pitch'], edgecolors='#f4f4f4',
+        gridsize=(6, 6), cmap='PuBu', alpha=.5
+    )
+    scatter = pitch.scatter(
+        x=100-df_shots_on_target['x'], 
+        y=100-df_shots_on_target['y'], 
+        ax=axs['pitch'], 
+        color=df_shots_on_target['color'], 
+        s=200, edgecolors='black', zorder=2, alpha=.9
+    )
+
+    # Anotar los tiempos sobre el gráfico
+    for i, row in df_shots_on_target.iterrows():
+        axs['pitch'].annotate(
+            row['time'], 
+            (100-row['y'], 100-row['x']), 
+            color='black', ha='center', va='center',
+            fontsize=6, weight='bold', zorder=3
+        )
+
+    # Título del gráfico
+    fig.suptitle(f'Posición de tiros a puerta del {condicion}', fontsize=22)
+
+    # Crear los elementos de la leyenda
+    legend_elements = []
+    for _, row in df_shots_on_target.iterrows():
+        color = row['color']
+        legend_elements.append(Patch(
+            facecolor=color, edgecolor='black', 
+            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
+        ))
+
+    # Usar plt.legend para agregar la leyenda con fondo transparente
+    legend = axs['pitch'].legend(
+        handles=legend_elements, loc='lower left', 
+        bbox_to_anchor=(0.02, 0.02), frameon=True, fontsize=10
+    )
+    legend.get_frame().set_alpha(0.7)  # Fondo semi-transparente
+
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
     return fig
