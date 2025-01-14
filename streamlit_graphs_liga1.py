@@ -7,7 +7,6 @@ import matplotlib.colors as mcolors
 from streamlit_cache_funcs_liga1 import get_team_id
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
-from matplotlib.legend import Legend
 from mplsoccer.pitch import VerticalPitch , Pitch
 from scipy.interpolate import CubicSpline
 
@@ -111,8 +110,8 @@ def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pai
 
 
 
-def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details):
-    """Genera un gráfico combinado de Pain Points y Resultados con ejes opuestos."""
+def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details, selected_round):
+    """Genera un gráfico combinado de Pain Points y Resultados con ejes opuestos y resalta la ronda seleccionada."""
     selected_id = match_details['selected_id']
 
     # Crear columna 'result_numeric' adaptada al equipo seleccionado
@@ -164,6 +163,15 @@ def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_
         fillcolor='rgba(255, 165, 0, 0.3)'  # Color naranja semitransparente para el área
     ))
 
+    # Añadir marcador para la ronda seleccionada
+    fig.add_trace(go.Scatter(
+        x=[selected_round],  # Solo la ronda seleccionada
+        y=[matches_for_team_tournament[matches_for_team_tournament['round_number'] == selected_round]['pain_points'].values[0]],  # Valor de 'pain_points' en la ronda seleccionada
+        mode='markers',
+        marker=dict(color='#8a2be2', size=12, symbol='circle', opacity=0.8),  # Color morado claro, tamaño de marcador y transparencia
+        name=f'Ronda actual {selected_round}'
+    ))
+
     # Configuración del diseño
     fig.update_layout(
         title=f"Presión del local vs Resultados de {selected_team} en {selected_tournament} {selected_year}",
@@ -201,6 +209,7 @@ def generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_
     )
 
     return fig
+
 
 
 def imprimir_tarjetas(match_details, selected_team):
@@ -799,7 +808,6 @@ def graficar_tiros_al_arco(df_shots_on_target, condicion):
 
 
 def graficar_posicion_tiros_a_puerta(df_shots_on_target, condicion):
-    from matplotlib.patches import Patch
 
     pitch = VerticalPitch(
         pitch_type='opta',

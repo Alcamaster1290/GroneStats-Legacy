@@ -344,7 +344,7 @@ with tabs[0]:
             st.plotly_chart(fig, use_container_width=True)
 
         if shotmap.empty:
-            st.empty()
+            st.warning('Sin datos de tiros.')
         else:
             resultados = mostrar_tiros_y_goles(shotmap, condicion, selected_team, opponent_team)
             f1, f2 = st.columns(2)
@@ -451,8 +451,8 @@ with tabs[2]:
     # Crear un contenedor para el gráfico
     with st.container():
         if selected_tournament != "Primera Division, Grand Final" and selected_tournament != "Liga 1, Relegation/Promotion Playoffs":
-            # Generar el gráfico de líneas (si es necesario)
-            st.plotly_chart(generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details))
+
+            st.plotly_chart(generar_grafico_lineas(matches_for_team_tournament, selected_team, selected_tournament, selected_year, match_details, round_number))
 
             # Obtener los gráficos de seguimiento y acumulados
             seguimiento_graph = get_follow_up_graph(matches_for_team_tournament)
