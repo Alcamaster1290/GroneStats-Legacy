@@ -969,7 +969,7 @@ def graficar_pos_tiros_a_puerta(df_local, df_visitante):
         patch = Patch(
             facecolor=color,
             edgecolor='black',
-            label=f"{row['team']} - {row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
+            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
         )
         if row['team'] == 'Local':
             legend_local.append(patch)
@@ -1030,8 +1030,8 @@ def graficar_pos_tiros_fuera(df_local, df_visitante):
     df_visitante['team'] = 'Visitante'
     df_combined = pd.concat([df_visitante, df_local])
 
-    # Seleccionar los últimos 30 tiros
-    df_combined = df_combined.tail(30)
+    # Seleccionar los últimos 40 tiros
+    df_combined = df_combined.head(40)
 
     # Dibujar hexbin y scatter
     hexmap = pitch.hexbin(
@@ -1084,7 +1084,7 @@ def graficar_pos_tiros_fuera(df_local, df_visitante):
         patch = Patch(
             facecolor=color,
             edgecolor='black',
-            label=f"{row['team']} - {row['time']}' {row['shortName']} - {row['situation']} | {row['shotType']}"
+            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['shotType']}"
         )
         if row['team'] == 'Local' and 0 <= row['time'] <= 45:
             legend_local_0_45.append(patch)
