@@ -24,6 +24,8 @@ from streamlit_graphs_liga1 import (
     graficar_tiros_al_arco,
     graficar_posicion_tiros_a_puerta,
     graficar_posicion_tiros_fuera,
+    graficar_pos_tiros_a_puerta,
+    graficar_pos_tiros_fuera,
 )
 
 st.set_page_config(
@@ -347,21 +349,26 @@ with tabs[0]:
             st.warning('Sin datos de tiros.')
         else:
             resultados = mostrar_tiros_y_goles(shotmap, condicion, selected_team, opponent_team)
+            # Crear copias explícitas de los DataFrames
+            df_tiros_ot_local = resultados['tiros_al_arco_local'].copy()
+            df_tiros_off_local = resultados['tiros_fuera_local'].copy()
+            df_tiros_ot_away = resultados['tiros_al_arco_away'].copy()
+            df_tiros_off_away = resultados['tiros_fuera_away'].copy()
+            
+            if not df_tiros_ot_local.empty and not df_tiros_ot_away.empty:
+                graficar_pos_tiros_a_puerta(df_tiros_ot_local, df_tiros_ot_away)
+
             f1, f2 = st.columns(2)
-
             with f1:
-                df_tiros_ot_local = resultados['tiros_al_arco_local']
-                df_tiros_off_local = resultados['tiros_fuera_local']
-                graficar_tiros_al_arco(df_tiros_ot_local, 'local')
-                graficar_posicion_tiros_a_puerta(df_tiros_ot_local, 'local')
-                graficar_posicion_tiros_fuera(df_tiros_off_local, 'local')
-
-            with f2:
-                df_tiros_ot_away = resultados['tiros_al_arco_away']
-                df_tiros_off_away = resultados['tiros_fuera_away']
-                graficar_tiros_al_arco(df_tiros_ot_away, 'visitante')
-                graficar_posicion_tiros_a_puerta(df_tiros_ot_away, 'visitante')
-                graficar_posicion_tiros_fuera(df_tiros_off_away, 'visitante')
+                if not df_tiros_ot_away.empty:
+                    graficar_tiros_al_arco(df_tiros_ot_away, 'visitante')
+            with f2:    
+                if not df_tiros_ot_local.empty:
+                    graficar_tiros_al_arco(df_tiros_ot_local, 'local')
+            st.divider()
+            
+            
+            graficar_pos_tiros_fuera(df_tiros_off_local,df_tiros_off_away)
         
 
     # Mostrar equipo visitante en la tercera columna

@@ -268,12 +268,12 @@ def mostrar_tiros_y_goles(df_shotmaps, condicion, selected_team, opponent_team):
         df_shots_on_target_opponent = df_shots_on_target_local
         df_shots_off_target_selected = df_shots_off_target_away
         df_shots_off_target_opponent = df_shots_off_target_local
-
-    # Extraer y mostrar los goles
-    st.subheader("Goles")
+    
     goals_df = df_shotmaps[df_shotmaps['shotType'] == 'goal']
     
     if not goals_df.empty:
+        # Extraer y mostrar los goles
+        st.subheader("Goles")
         goals_df = goals_df.sort_values(by='time')
         goles_por_equipo = {selected_team: [], opponent_team: []}
 
