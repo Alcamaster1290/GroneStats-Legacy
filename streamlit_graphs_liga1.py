@@ -10,6 +10,7 @@ from matplotlib.patches import Patch
 from mplsoccer.pitch import VerticalPitch , Pitch
 from scipy.interpolate import CubicSpline
 import matplotlib.patheffects as path_effects
+from matplotlib.colors import LinearSegmentedColormap
 
 def crear_grafico_score(selected_score, opponent_score, team_name, opponent, pain_points):
     """
@@ -675,89 +676,6 @@ def generar_formacion_basica(formacion, df_xi_titular):
     ax.set_title(f"Formación: {formacion}", fontsize=14, color='white')
     return fig
 
-def graficar_posicion_tiros_fuera(df_shots_off_target, condicion):
-
-    # Configuración del pitch
-    pitch = VerticalPitch(
-        pitch_type='opta',
-        pitch_color='grass',
-        half=True,
-        goal_type='box',
-        linewidth=1.25,
-        line_color='black',
-        pitch_length=105,
-        pitch_width=68
-    )
-
-    # Crear la figura y el grid
-    fig, axs = pitch.grid(
-        figheight=10, title_height=0, endnote_space=0, 
-        title_space=0, axis=False, grid_height=0.82, 
-        endnote_height=0.01, grid_width=0.8,
-    )
-
-    # Título del gráfico
-    fig.suptitle(f'Posición de tiros fuera del {condicion}', fontsize=22)
-
-    # Crear hexbin y scatter plot
-    hexmap = pitch.hexbin(
-        x=100 - df_shots_off_target['x'], 
-        y=100 - df_shots_off_target['y'], 
-        ax=axs['pitch'], 
-        edgecolors='#f4f4f4',
-        gridsize=(6, 6), 
-        cmap='Reds', 
-        alpha=0.5
-    )
-
-    scatter = pitch.scatter(
-        x=100 - df_shots_off_target['x'], 
-        y=100 - df_shots_off_target['y'], 
-        ax=axs['pitch'], 
-        color=df_shots_off_target['color'], 
-        s=200, 
-        edgecolors='black', 
-        zorder=2, 
-        alpha=0.9
-    )
-
-    # Anotar los tiempos sobre los puntos
-    for _, row in df_shots_off_target.iterrows():
-        axs['pitch'].annotate(
-            text=row['time'], 
-            xy=(100 - row['y'], 100 - row['x']), 
-            color='white', 
-            ha='center', 
-            va='center',
-            fontsize=8, 
-            weight='bold', 
-            zorder=3
-        )
-
-    # Crear elementos de la leyenda
-    legend_elements = []
-    for _, row in df_shots_off_target.iterrows():
-        legend_elements.append(Patch(
-            facecolor=row['color'], 
-            edgecolor='black', 
-            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
-        ))
-
-    # Configuración de la leyenda
-    legend = axs['pitch'].legend(
-        handles=legend_elements, 
-        loc='lower left', 
-        bbox_to_anchor=(0.02, 0.02), 
-        frameon=True, 
-        fontsize=10
-    )
-    legend.get_frame().set_alpha(0.7)  # Fondo semi-transparente
-
-    # Ajustar diseño y mostrar
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=True)
-    return fig
-
 
 def graficar_tiros_al_arco(df_shots_on_target, condicion):
     # Procesar coordenadas del DataFrame
@@ -822,73 +740,6 @@ def graficar_tiros_al_arco(df_shots_on_target, condicion):
     st.plotly_chart(fig, use_container_width=True)
 
 
-
-def graficar_posicion_tiros_a_puerta(df_shots_on_target, condicion):
-
-    pitch = Pitch(
-        pitch_type='opta',
-        pitch_color='grass',
-        goal_type='box',
-        linewidth=1.25,
-        line_color='black',
-        pitch_length=105,
-        pitch_width=68
-    )
-
-    fig, axs = pitch.grid(
-        figheight=10, title_height=0, endnote_space=0, 
-        title_space=0, axis=False, grid_height=0.82, 
-        endnote_height=0.01, grid_width=0.8,
-    )
-
-    # Dibujar hexbin y scatter
-    hexmap = pitch.hexbin(
-        x=100-df_shots_on_target['x'], 
-        y=100-df_shots_on_target['y'], 
-        ax=axs['pitch'], edgecolors='#f4f4f4',
-        gridsize=(5, 3), cmap='PuBu', alpha=.4
-    )
-    scatter = pitch.scatter(
-        x=100-df_shots_on_target['x'], 
-        y=100-df_shots_on_target['y'], 
-        ax=axs['pitch'], 
-        color=df_shots_on_target['color'], 
-        s=200, edgecolors='black', zorder=2, alpha=.9
-    )
-
-    # Anotar los tiempos sobre el gráfico
-    for i, row in df_shots_on_target.iterrows():
-        axs['pitch'].annotate(
-            row['time'], 
-            (100-row['x'], 100-row['y']), 
-            color='black', ha='center', va='center',
-            fontsize=6, weight='bold', zorder=3
-        )
-
-    # Título del gráfico
-    fig.suptitle(f'Posición de tiros al arco del {condicion}', fontsize=22)
-
-    # Crear los elementos de la leyenda
-    legend_elements = []
-    for _, row in df_shots_on_target.iterrows():
-        color = row['color']
-        legend_elements.append(Patch(
-            facecolor=color, edgecolor='black', 
-            label=f"{row['time']}' {row['shortName']} - {row['situation']} | {row['bodyPart']}"
-        ))
-
-    # Usar plt.legend para agregar la leyenda con fondo transparente
-    legend = axs['pitch'].legend(
-        handles=legend_elements, loc='lower left', 
-        bbox_to_anchor=(0.02, 0.02), frameon=True, fontsize=10
-    )
-    legend.get_frame().set_alpha(0.7)  # Fondo semi-transparente
-
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=True)
-    return fig
-
-
 def graficar_pos_tiros_a_puerta(df_local, df_visitante):
     # Crear el campo de juego
     pitch = Pitch(
@@ -926,7 +777,7 @@ def graficar_pos_tiros_a_puerta(df_local, df_visitante):
         y=df_combined['y'],
         ax=axs['pitch'],
         edgecolors='none',  
-        gridsize=(10, 4),
+        gridsize=(15, 8),
         cmap='PuBu',    
         alpha=0.4
     )
@@ -978,7 +829,7 @@ def graficar_pos_tiros_a_puerta(df_local, df_visitante):
 
     # Leyenda para el equipo local (esquina inferior izquierda)
     legend1 = axs['pitch'].legend(
-        handles=legend_local,
+        handles=legend_visitante,
         loc='lower left',  # Posición inferior izquierda
         frameon=True,
         fontsize=8
@@ -987,7 +838,7 @@ def graficar_pos_tiros_a_puerta(df_local, df_visitante):
 
     # Leyenda para el equipo visitante (esquina inferior derecha)
     legend2 = axs['pitch'].legend(
-        handles=legend_visitante,
+        handles=legend_local,
         loc='lower right',  # Posición inferior derecha
         frameon=True,
         fontsize=8
@@ -1039,7 +890,7 @@ def graficar_pos_tiros_fuera(df_local, df_visitante):
         y=df_combined['y'],
         ax=axs['pitch'],
         edgecolors='none',
-        gridsize=(10, 4),
+        gridsize=(15, 8),
         cmap='Reds',
         alpha=0.4
     )
@@ -1139,3 +990,81 @@ def graficar_pos_tiros_fuera(df_local, df_visitante):
     plt.tight_layout()
     st.pyplot(fig, use_container_width=True)
     return fig
+
+def generar_formacion_promedio(selected_titulares, opponent_titulares, df_shots_on_target_local, df_shots_on_target_visita):
+    """
+    Función para generar un gráfico de las posiciones promedio de jugadores
+    por equipo en un campo de fútbol, mostrando los equipos en espejo y un hexbin para disparos.
+    
+    Parameters:
+    selected_titulares (DataFrame): DataFrame con los datos de los jugadores del equipo local.
+    opponent_titulares (DataFrame): DataFrame con los datos de los jugadores del equipo visitante.
+    df_shots_on_target_local (DataFrame): DataFrame con los disparos a puerta del equipo local.
+    df_shots_on_target_visita (DataFrame): DataFrame con los disparos a puerta del equipo visitante.
+    """
+    # Crear el gráfico de un campo de fútbol
+    pitch = VerticalPitch(pitch_type='opta', pitch_color='grass', line_color='white')
+    fig, ax = pitch.draw(figsize=(8, 12))
+    pearl_earring_cmap = LinearSegmentedColormap.from_list("Pearl Earring - 10 colors",
+                                                       ['#4393c4', '#15242e'], N=10)
+    flamingo_cmap = LinearSegmentedColormap.from_list("Flamingo - 10 colors",
+                                                  ['#e3aca7', '#c03a1d'], N=10)
+    
+    # Graficar hexbins para los disparos a puerta del equipo local
+    pitch.hexbin(
+        x=100 - df_shots_on_target_local['x'], 
+        y=100 - df_shots_on_target_local['y'], 
+        ax=ax, edgecolors='#f4f4f4', gridsize=(12, 10), cmap=pearl_earring_cmap , alpha=0.6
+    )
+
+    # Graficar hexbins para los disparos a puerta del equipo visitante (reflejando coordenadas)
+    pitch.hexbin(
+        x=df_shots_on_target_visita['x'], 
+        y=df_shots_on_target_visita['y'], 
+        ax=ax, edgecolors='#f4f4f4', gridsize=(12,10), cmap=flamingo_cmap, alpha=0.6
+    )
+
+    # Pintar puntos verdes para los goles del equipo local
+    goals_local = df_shots_on_target_local[df_shots_on_target_local['shotType'] == 'goal']
+    ax.scatter(
+        x=100 - goals_local['y'],
+        y=100 - goals_local['x'],
+        color='green', s=100, label='Goles', edgecolors='black'
+    )
+
+    # Pintar puntos verdes para los goles del equipo visitante (reflejando coordenadas)
+    goals_visita = df_shots_on_target_visita[df_shots_on_target_visita['shotType'] == 'goal']
+    ax.scatter(
+        x=goals_visita['y'],
+        y=goals_visita['x'],
+        color='green', s=100, edgecolors='black'  # Sin etiqueta para evitar duplicados en la leyenda
+    )
+
+    # Graficar las posiciones promedio de los jugadores para ambos equipos
+    for team_data in [selected_titulares, opponent_titulares]:
+        for team in team_data['team'].unique():
+            team_specific_data = team_data[team_data['team'] == team]
+            
+            # Si es el equipo visitante, reflejamos las coordenadas
+            if team == opponent_titulares['team'].iloc[0]:
+                team_specific_data = team_specific_data.copy()  # Crear una copia para evitar warnings
+                team_specific_data['averageX'] = 100 - team_specific_data['averageX']
+                team_specific_data['averageY'] = 100 - team_specific_data['averageY']
+            
+            # Graficar las posiciones promedio de los jugadores
+            scatter = ax.scatter(team_specific_data['averageY'], team_specific_data['averageX'], 
+                                 label=team, s=300, alpha=0.7, edgecolors='black')
+
+            # Añadir el número de camiseta dentro de los puntos
+            for i, row in team_specific_data.iterrows():
+                ax.text(row['averageY'], row['averageX'], str(row['shirtNumber']), color='white', 
+                        ha='center', va='center', fontsize=10, weight='bold')
+
+    # Añadir leyenda para los equipos, excluyendo los hexbins
+    ax.legend(loc='lower left', frameon=True)
+
+    # Título del gráfico
+    plt.title('Posiciones Promedio de Jugadores y Disparos')
+
+    # Mostrar el gráfico en Streamlit
+    st.pyplot(fig)

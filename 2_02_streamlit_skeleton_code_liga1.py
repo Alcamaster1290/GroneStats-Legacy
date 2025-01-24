@@ -9,7 +9,7 @@ from streamlit_cache_funcs_liga1 import (
     load_data, extract_year_from_season, parse_years, 
     load_round_statistics, load_round_player_statistics, load_round_average_positions, 
     get_match_details, load_match_momentum,
-    load_shotmaps, obtener_formacion, mostrar_tiros_y_goles, 
+    load_shotmaps, obtener_formacion, mostrar_tiros_y_goles, procesar_tiros,
 )
 from streamlit_graphs_liga1 import (
     crear_grafico_score, 
@@ -22,10 +22,9 @@ from streamlit_graphs_liga1 import (
     get_grafico_match_momentum,
     generar_formacion_basica,
     graficar_tiros_al_arco,
-    graficar_posicion_tiros_a_puerta,
-    graficar_posicion_tiros_fuera,
     graficar_pos_tiros_a_puerta,
     graficar_pos_tiros_fuera,
+    generar_formacion_promedio,
 )
 
 st.set_page_config(
@@ -387,7 +386,7 @@ with tabs[1]:
     st.text(f"Formación inicial de {selected_team}: {selected_formacion}")
     opponent_formacion = obtener_formacion(opponent_titulares)
     st.text(f"Formación inicial de {opponent_team}: {opponent_formacion}")
-    fig = generar_formacion_basica(selected_formacion, equipo_titular)
+    
 
     try:
         selected_position = st.segmented_control("Posicion\n",options=["TODOS","DEFENSAS", "MEDIOCENTROS", "DELANTEROS"],default="TODOS")
@@ -428,10 +427,25 @@ with tabs[1]:
 
             with col2:
                 if not shotmap.empty:
-                    st.warning("Aqui se mostrara el mapa del campo con las posiciones promedio y hexbins de tiros al arco")
+                    st.text("Posición promedio de ambos equipos y zona de disparos al arco\n")
+                    df_shots_on_target_local, df_shots_on_target_away, df_shots_off_target_local, df_shots_off_target_away = procesar_tiros(shotmap, condicion)
+
+                    df_shots_local = pd.concat([df_shots_on_target_local, df_shots_off_target_local])
+                    df_shots_away = pd.concat([df_shots_on_target_away, df_shots_off_target_away])
+
+                    generar_formacion_promedio(selected_titulares, opponent_titulares,df_shots_local,df_shots_away)
+
+                    st.subheader(f"Tiros del equipo {selected_team}")
+                    st.dataframe(df_shots_local)
+                    st.subheader(f"Tiros del equipo {opponent_team}")
+                    st.dataframe(df_shots_away)
+                    #st.warning("Aqui se mostrara el mapa del campo con las posiciones promedio y hexbins de tiros al arco")      
+
                 if selected_outs.empty and not selected_ins.empty:
                     st.write("Formación Inicial")
-                    st.pyplot(fig,use_container_width=True)
+                    basicFormation = generar_formacion_basica(selected_formacion, equipo_titular)
+                    st.pyplot(basicFormation,use_container_width=True)
+                    
 
             with col3:
                 st.markdown(f"Equipo titular {opponent_team}")
