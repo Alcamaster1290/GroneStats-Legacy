@@ -25,6 +25,7 @@ from streamlit_graphs_liga1 import (
     graficar_pos_tiros_a_puerta,
     graficar_pos_tiros_fuera,
     generar_formacion_promedio,
+    mostrar_dataframe_titulares,
 )
 
 st.set_page_config(
@@ -278,37 +279,58 @@ else:
 # =======================
 # Pestaña: Detalles del Partido
 # =======================
+@st.cache_data
+def filter_stats_by_period(stats, period):
+    """Filtra las estadísticas según el período seleccionado."""
+    return stats[stats['period'] == "ALL"] if period == "COMPLETO" else stats[stats['period'] == period]
+
+@st.cache_data
+def get_card_counts(stats):
+    """Obtiene las cantidades de tarjetas rojas y amarillas, y elimina esas filas del DataFrame."""
+    red_cards = stats[stats['name'] == 'Red cards']['Valor'].sum()
+    yellow_cards = stats[stats['name'] == 'Yellow cards']['Valor'].sum()
+    stats = stats[~stats['name'].isin(['Red cards', 'Yellow cards'])]
+    return red_cards, yellow_cards, stats
+
+@st.cache_data
+def process_team_stats(team_stats, period):
+    """Procesa las estadísticas del equipo (filtrado, conteo de tarjetas y orden)."""
+    filtered_stats = filter_stats_by_period(team_stats, period)
+    red_cards, yellow_cards, processed_stats = get_card_counts(filtered_stats)
+    processed_stats = processed_stats.sort_values(by='group')
+    return red_cards, yellow_cards, processed_stats
+
+# =================================================
 with tabs[0]:
-    @st.cache_data
-    def filter_by_period(stats, period):
-        return stats[stats['period'] == "ALL"] if period == "COMPLETO" else stats[stats['period'] == period]
-    
     # Selección del período con valor por defecto "COMPLETO"
-    selected_period = st.segmented_control("Tiempo\n", ["COMPLETO", "1ST", "2ND"])
+    selected_period = st.segmented_control("Tiempo\n", ["COMPLETO", "1ST", "2ND"], key="selected_period")
     selected_period = selected_period if selected_period else "COMPLETO"
+    # Generar gráficos antes de filtrar los DataFrames
+    col1, col2, col3 = st.columns([1, 4, 1])
 
-    # Filtrar estadísticas por período
-    home_stats = filter_by_period(home_stats, selected_period)
-    away_stats = filter_by_period(away_stats, selected_period)
+    # Mostrar gráficos y tiros en la columna central
+    with col2:
+        if not match_momentum.empty:
+            fig = get_grafico_match_momentum(
+                df=match_momentum,
+                color_home=home_primary_color,
+                color_away=away_primary_color,
+                selected_team=selected_team,
+                opponent_team=opponent_team,
+                condicion_selected=condicion,
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Validar tarjetas rojas
-    red_cards_home = home_stats[home_stats['name'] == 'Red cards']['Valor'].sum()
-    red_cards_away = away_stats[away_stats['name'] == 'Red cards']['Valor'].sum()
-    # Validar tarjetas amarillas
-    yellow_cards_home = home_stats[home_stats['name'] == 'Yellow cards']['Valor'].sum()
-    yellow_cards_away = away_stats[home_stats['name'] == 'Yellow cards']['Valor'].sum()
-    # Quita las filas de tarjetas rojas y amarillas
-    home_stats = home_stats[~home_stats['name'].isin(['Red cards', 'Yellow cards'])]
-    away_stats = away_stats[~away_stats['name'].isin(['Red cards', 'Yellow cards'])]
+    # Procesar estadísticas para equipos local y visitante
+    red_cards_home, yellow_cards_home, home_stats = process_team_stats(home_stats, selected_period)
+    red_cards_away, yellow_cards_away, away_stats = process_team_stats(away_stats, selected_period)
 
-    home_stats = home_stats.sort_values(by='group')
-    away_stats = away_stats.sort_values(by='group')
-    
+    # Generar HTML de estadísticas de los equipos
     html_local = generar_html_equipo(
         f"{selected_match['home']}",
         home_stats,
-        color_primario=home_primary_color,  
-        color_secundario=home_secondary_color,   
+        color_primario=home_primary_color,
+        color_secundario=home_secondary_color,
         red_cards=red_cards_home,
         yellow_cards=yellow_cards_home,
     )
@@ -316,44 +338,31 @@ with tabs[0]:
     html_visitante = generar_html_equipo(
         f"{selected_match['away']}",
         away_stats,
-        color_primario=away_primary_color, 
-        color_secundario= away_secondary_color,   
+        color_primario=away_primary_color,
+        color_secundario=away_secondary_color,
         red_cards=red_cards_away,
         yellow_cards=yellow_cards_away,
     )
 
-    # Contenedor principal para mostrar ambos equipos en tres columnas
-    col1, col2, col3 = st.columns([1, 4, 1])
-
-    # Mostrar equipo local en la primera columna
+    # Mostrar información de estadísticas después de los gráficos
     with col1:
         st.markdown(html_local, unsafe_allow_html=True)
-
+        
+    with col3:
+        st.markdown(html_visitante, unsafe_allow_html=True)
+        
     with col2:
-
-        if match_momentum.empty:
-            st.empty()
-        else:
-            fig = get_grafico_match_momentum(
-            df=match_momentum,
-            color_home=home_primary_color,
-            color_away=away_primary_color,
-            selected_team=selected_team,
-            opponent_team=opponent_team,
-            condicion_selected=condicion
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        if shotmap.empty:
-            st.warning('Sin datos de tiros.')
-        else:
+        if not shotmap.empty:
             resultados = mostrar_tiros_y_goles(shotmap, condicion, selected_team, opponent_team)
-            # Crear copias explícitas de los DataFrames
             df_tiros_ot_local = resultados['tiros_al_arco_local'].copy()
             df_tiros_off_local = resultados['tiros_fuera_local'].copy()
             df_tiros_ot_away = resultados['tiros_al_arco_away'].copy()
             df_tiros_off_away = resultados['tiros_fuera_away'].copy()
-            
+
+            if not df_tiros_off_local.empty and not df_tiros_off_away.empty:
+                graficar_pos_tiros_fuera(df_tiros_off_local, df_tiros_off_away)
+                st.divider()
+
             if not df_tiros_ot_local.empty and not df_tiros_ot_away.empty:
                 graficar_pos_tiros_a_puerta(df_tiros_ot_local, df_tiros_ot_away)
 
@@ -361,18 +370,15 @@ with tabs[0]:
             with f1:
                 if not df_tiros_ot_away.empty:
                     graficar_tiros_al_arco(df_tiros_ot_away, 'visitante')
-            with f2:    
+            with f2:
                 if not df_tiros_ot_local.empty:
                     graficar_tiros_al_arco(df_tiros_ot_local, 'local')
-            st.divider()
-            
-            
-            graficar_pos_tiros_fuera(df_tiros_off_local,df_tiros_off_away)
-        
-
-    # Mostrar equipo visitante en la tercera columna
-    with col3:
-        st.markdown(html_visitante, unsafe_allow_html=True)
+        else:
+            st.warning('Sin datos de tiros.')
+        st.divider()
+        # Elegir columnas a mostrar
+        st.dataframe(home_stats)
+        st.dataframe(away_stats)
 
 # =======================
 # Pestaña: Análisis de Jugadores
@@ -382,48 +388,61 @@ with tabs[1]:
     st.header("Análisis de Jugadores")
     
     selected_formacion = obtener_formacion(selected_titulares)
-    equipo_titular = selected_titulares 
+    equipo_titular = selected_titulares
     st.text(f"Formación inicial de {selected_team}: {selected_formacion}")
     opponent_formacion = obtener_formacion(opponent_titulares)
     st.text(f"Formación inicial de {opponent_team}: {opponent_formacion}")
-    
 
     try:
-        selected_position = st.segmented_control("Posicion\n",options=["TODOS","DEFENSAS", "MEDIOCENTROS", "DELANTEROS"],default="TODOS")
-        if selected_position == "DEFENSAS":
-            selected_position = "D"
-        elif selected_position == "MEDIOCENTROS":
-            selected_position = "M"
-        elif selected_position == "DELANTEROS":
-            selected_position = "F"
-        if selected_position != "TODOS":
-            selected_titulares = selected_titulares[selected_titulares['position'] == selected_position]
-            selected_ins = selected_ins[selected_ins['position'] == selected_position]
-            opponent_titulares = opponent_titulares[opponent_titulares['position'] == selected_position]
-            opponent_ins = opponent_ins[opponent_ins['position'] == selected_position]
-            if minutos_dectados:
-                selected_ins = selected_ins[selected_ins['minutesPlayed'] != 0]
-                opponent_ins = opponent_ins[opponent_ins['minutesPlayed'] != 0]
-                selected_outs = selected_outs[selected_outs['position'] == selected_position]
-                opponent_outs = opponent_outs[opponent_outs['position'] == selected_position]
+        # Control segmentado para seleccionar el periodo
+        selected_period = st.segmented_control("Selecciona el período", options=["COMPLETO", "1ER TIEMPO", "2DO TIEMPO"], default="COMPLETO")
+        
+        # Filtrar jugadores según el período seleccionado
+        if selected_period == "COMPLETO":
+            # Solo los jugadores que no son sustitutos
+            selected_titulares = selected_titulares[selected_titulares['substitute'] == False]
+            opponent_titulares = opponent_titulares[opponent_titulares['substitute'] == False]
+        
+        elif selected_period == "1ER TIEMPO":
+            # Jugadores titulares con 'ins' que jugaron más de 45 minutos y sin 'outs' antes del minuto 45
+            selected_titulares = selected_titulares[selected_titulares['substitute'] == False]
+            selected_ins = selected_ins[selected_ins['minutesPlayed'] > 45]
+            selected_outs = selected_outs[selected_outs['minutesPlayed'] <= 44]
+            
+            opponent_titulares = opponent_titulares[opponent_titulares['substitute'] == False]
+            opponent_ins = opponent_ins[opponent_ins['minutesPlayed'] > 45]
+            opponent_outs = opponent_outs[opponent_outs['minutesPlayed'] <= 44]
+
+            selected_titulares = selected_titulares[~selected_titulares['id'].isin(selected_outs['id'])]
+            selected_titulares = pd.concat([selected_titulares, selected_ins], ignore_index=True)
+            
+            opponent_titulares = opponent_titulares[~opponent_titulares['id'].isin(opponent_outs['id'])]
+            opponent_titulares = pd.concat([opponent_titulares, opponent_ins], ignore_index=True)
+        
+        elif selected_period == "2DO TIEMPO":
+            # Sacar los 'outs' del df de titulares y agregar todos los 'ins'
+            selected_titulares = selected_titulares[~selected_titulares['id'].isin(selected_outs['id'])]
+            selected_titulares = pd.concat([selected_titulares, selected_ins], ignore_index=True)
+            
+            opponent_titulares = opponent_titulares[~opponent_titulares['id'].isin(opponent_outs['id'])]
+            opponent_titulares = pd.concat([opponent_titulares, opponent_ins], ignore_index=True)
 
         # Verificar si hay datos válidos
         if players_stats.empty and opponent_players_stats.empty:
             st.warning("Sin datos a profundidad de los jugadores.")
         else:
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3 = st.columns([1,3,1])
             with col1:
                 st.markdown(f"Equipo titular {selected_team}")
-                st.dataframe(selected_titulares)
-                if selected_outs.empty and not selected_ins.empty:
-                    st.subheader(f"Suplentes")
-                    st.dataframe(selected_ins)
-                elif not selected_ins.empty:
+                #st.dataframe(selected_titulares)
+                mostrar_dataframe_titulares(selected_titulares)
+
+                if not selected_ins.empty:
                     st.subheader(f"Ingresos")
-                    st.dataframe(selected_ins)
+                    mostrar_dataframe_titulares(selected_ins)
                 if not selected_outs.empty:
                     st.subheader(f"Cambios / Expulsados")
-                    st.dataframe(selected_outs)
+                    mostrar_dataframe_titulares(selected_outs)
 
             with col2:
                 if not shotmap.empty:
@@ -433,35 +452,33 @@ with tabs[1]:
                     df_shots_local = pd.concat([df_shots_on_target_local, df_shots_off_target_local])
                     df_shots_away = pd.concat([df_shots_on_target_away, df_shots_off_target_away])
 
-                    generar_formacion_promedio(selected_titulares, opponent_titulares,df_shots_local,df_shots_away)
-
-                    st.subheader(f"Tiros del equipo {selected_team}")
-                    st.dataframe(df_shots_local)
-                    st.subheader(f"Tiros del equipo {opponent_team}")
-                    st.dataframe(df_shots_away)
-                    #st.warning("Aqui se mostrara el mapa del campo con las posiciones promedio y hexbins de tiros al arco")      
+                    generar_formacion_promedio(selected_titulares, opponent_titulares, df_shots_local, df_shots_away)
 
                 if selected_outs.empty and not selected_ins.empty:
                     st.write("Formación Inicial")
                     basicFormation = generar_formacion_basica(selected_formacion, equipo_titular)
-                    st.pyplot(basicFormation,use_container_width=True)
-                    
+                    st.pyplot(basicFormation, use_container_width=True)
 
             with col3:
                 st.markdown(f"Equipo titular {opponent_team}")
-                st.dataframe(opponent_titulares)
-                if opponent_outs.empty and not opponent_ins.empty:
-                    st.subheader(f"Suplentes")
-                    st.dataframe(opponent_ins)
-                elif not opponent_ins.empty:
+                #st.dataframe(opponent_titulares)
+                mostrar_dataframe_titulares(opponent_titulares)
+                if not opponent_ins.empty:
                     st.subheader(f"Ingresos")
-                    st.dataframe(opponent_ins)
+                    mostrar_dataframe_titulares(opponent_ins)
                 if not opponent_outs.empty:
                     st.subheader(f"Cambios / Expulsados")
-                    st.dataframe(opponent_outs)
+                    mostrar_dataframe_titulares(opponent_outs)
+        st.divider()
+        if not shotmap.empty:
+            st.subheader(f"Estadisticas de jugadores de {selected_team}")
+            st.dataframe(selected_titulares)
+            st.subheader(f"Estadisticas de jugadores de {opponent_team}")
+            st.dataframe(opponent_titulares)
 
     except Exception as e:
         st.error(f"Error procesando los datos: {str(e)}")
+
 
 
 # =======================

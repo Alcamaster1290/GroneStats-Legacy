@@ -425,39 +425,136 @@ def mostrar_tarjeta_pain_points():
     </div>
     """, unsafe_allow_html=True)
 
-# Función para generar el contenido HTML dinámico de las estadísticas
 def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_cards, yellow_cards):
+    # Diccionario de traducción
+    traducciones = {
+        "Match overview" : "Resumen del Partido",
+        "Ball possession": "% Posesión de balón",
+        "Expected goals": "Goles esperados (xG)",
+        "Total shots": "Tiros totales",
+        
+
+        "Goalkeeping": "Arquero",
+        "Goal kicks": "Saques de meta",
+        "Total saves": "Atajadas totales",
+        "Attack" : "Fase Ofensiva",
+        "Touches in penalty area": "Toques en zona penal contraria",
+        "Big chances": "Grandes oportunidades",
+        "Big chances missed": "Grandes oportunidades falladas",
+        "Big chances scored": "Grandes oportunidades anotadas",
+        "Fouled in final third": "Recibio falta en el último tercio",
+        "Offsides": "Fuera de juego", # Extraer
+
+        "Defending" : "Fase Defensiva",
+        
+       
+        "Goalkeeper saves": "Atajadas del portero",
+        "Corner kicks": "Tiros de esquina",
+        "Free kicks": "Tiros libres",
+        "Tackles": "Entradas",
+        "Passes": "Pases",
+        "Fouls": "Faltas",
+        
+        "Recoveries": "% Recuperaciones", #Extraer
+        "Clearances": "Despejes",
+        "Interceptions": "Intercepciones",
+        "Total tackles": "Entradas totales",
+        "Tackles won": "Entradas ganadas",
+        "Dribbles": "Regates",
+        "Aerial duels": "Duelos aéreos",
+        "Ground duels": "Duelos en el suelo",
+        "Dispossessed": "Perdidas de balón",
+        "Duels": "Duelos",        
+        "Accurate passes": "Pases precisos",
+        "Throw-ins": "Saques de banda",
+        "Final third entries": "Entradas al último tercio",
+        "Final third phase": "Acciones ofensivas en último tercio",
+        "Long balls": "Balones largos",
+        "Crosses": "Centros",
+        "Shots": "Tiros",
+        "Shots inside box": "Tiros dentro del área",
+        "Shots on target": "Tiros a puerta",
+        "Hit woodwork": "Tiros al poste",
+        "Shots off target": "Tiros desviados",
+        "Blocked shots": "Tiros bloqueados",
+        "Shots outside box": "Tiros fuera del área",
+    }
+
+    # Oscurecer color secundario
     rgb_color = mcolors.hex2color(color_secundario)
-    darker_rgb = [c * 0.55 for c in rgb_color] 
+    darker_rgb = [c * 0.55 for c in rgb_color]
     color_secundario = mcolors.to_hex(darker_rgb)
+
+    # Construcción del HTML
     html = f"""
     <div style="width: 100%; margin: 4px auto; font-family: sans-serif; text-align: center;">
         <h3 style="color: {color_primario}; text-shadow: 1px 1px 1px grey;">{equipo}</h3>
         <p><strong>Tarjetas rojas:</strong> {int(red_cards)}</p>
         <p><strong>Tarjetas amarillas:</strong> {int(yellow_cards)}</p>
     """
+
     # Agrupar estadísticas por 'group' y generar HTML
     grouped_stats = stats.groupby('group')
     for group, group_data in grouped_stats:
-        if group == 'Match overview':
-            html += f"<h4 style='color: #2b3ef8; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
-            for _, row in group_data.iterrows():
-                html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
-
-    for group, group_data in grouped_stats:
-        if group != 'Match overview':
-            if group == 'Goalkeeping':
-                html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
-                for _, row in group_data.iterrows():
-                    html += f"<p>{row['name']}: {int(row['Valor'])}</p>"   
-            else:
-                html += f"<h4 style='color: {color_secundario}; text-shadow: 1px 1px 1px grey;'>{group}</h4>"
-                for _, row in group_data.iterrows():
-                    html += f"<p>{row['name']}: {int(row['Valor'])}</p>"
+        grupo_traducido = traducciones.get(group, group)  # Traducir grupo si está en el diccionario
+        html += f"<h4 style='color: {color_primario if group == 'Match overview' else color_secundario}; text-shadow: 1px 1px 1px grey;'>{grupo_traducido}</h4>"
+        
+        for _, row in group_data.iterrows():
+            nombre_traducido = traducciones.get(row['name'], row['name'])  # Traducir nombre si está en el diccionario
+            html += f"<p>{nombre_traducido}: {int(row['Valor'])}</p>"
 
     html += "</div>"
     return html
 
+def mostrar_dataframe_titulares(df_titulares):
+    """
+    Muestra un DataFrame como una tabla HTML simple en Streamlit,
+    asignando (C) al Nombre si es capitán y eliminando la columna Capitan.
+
+    Args:
+        df_titulares (pd.DataFrame): DataFrame con los datos de los titulares.
+    """
+    # Renombrar columnas
+    df_titulares = df_titulares.rename(columns={'name': 'Nombre', 'shirtNumber': 'Dorsal', 'captain': 'Capitan', 'position': 'Posicion'})
+
+    # Verificar columnas existentes
+    columnas_a_mostrar = ['Nombre', 'Dorsal', 'Capitan', 'Posicion']
+    columnas_existentes = [col for col in columnas_a_mostrar if col in df_titulares.columns]
+
+    if not columnas_existentes:
+        st.error("Error: No se encontraron las columnas esperadas en el DataFrame.")
+        return
+
+    # Ordenar por la columna Posicion en el orden G, D, M, F
+    order = {'G': 0, 'D': 1, 'M': 2, 'F': 3}
+    df_titulares['Orden'] = df_titulares['Posicion'].map(order)
+    df_titulares = df_titulares.sort_values(by='Orden').drop(columns=['Orden'])
+
+    # Asignar (C) al nombre si es capitán
+    if 'Capitan' in df_titulares.columns:
+        df_titulares['Nombre'] = df_titulares.apply(
+            lambda row: f"{row['Nombre']} (C)" if row['Capitan'] == 1 else row['Nombre'], axis=1
+        )
+        # Eliminar la columna Capitan
+        df_titulares = df_titulares.drop(columns=['Capitan'])
+
+    # Reemplazar NaN con cadenas vacías para evitar mostrar valores NaN
+    df_titulares = df_titulares.fillna('')
+
+    # Convertir el DataFrame a HTML con estilos
+    html_table = df_titulares[['Nombre', 'Dorsal']].to_html(
+        index=False,
+        escape=False,
+        border=0,
+        justify='center'
+    )
+
+    # Centrar el contenido de la tabla
+    html_table = html_table.replace('<th>Nombre</th>', '<th style="text-align: center;">Nombre</th>')
+    html_table = html_table.replace('<td>', '<td style="text-align: center;">')
+
+    # Mostrar la tabla HTML en Streamlit
+    st.markdown(html_table, unsafe_allow_html=True)
 
 @st.cache_data
 def ajuste_spline_cubico(x, y):
@@ -1014,14 +1111,14 @@ def generar_formacion_promedio(selected_titulares, opponent_titulares, df_shots_
     pitch.hexbin(
         x=100 - df_shots_on_target_local['x'], 
         y=100 - df_shots_on_target_local['y'], 
-        ax=ax, edgecolors='#f4f4f4', gridsize=(12, 10), cmap=pearl_earring_cmap , alpha=0.6
+        ax=ax, edgecolors='#f4f4f4', gridsize=(12, 10), cmap=pearl_earring_cmap , alpha=0.4
     )
 
     # Graficar hexbins para los disparos a puerta del equipo visitante (reflejando coordenadas)
     pitch.hexbin(
         x=df_shots_on_target_visita['x'], 
         y=df_shots_on_target_visita['y'], 
-        ax=ax, edgecolors='#f4f4f4', gridsize=(12,10), cmap=flamingo_cmap, alpha=0.6
+        ax=ax, edgecolors='#f4f4f4', gridsize=(12,10), cmap=flamingo_cmap, alpha=0.4
     )
 
     # Pintar puntos verdes para los goles del equipo local
@@ -1067,4 +1164,4 @@ def generar_formacion_promedio(selected_titulares, opponent_titulares, df_shots_
     plt.title('Posiciones Promedio de Jugadores y Disparos')
 
     # Mostrar el gráfico en Streamlit
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)

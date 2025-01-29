@@ -1,88 +1,54 @@
 import os
 import pandas as pd
 import ScraperFC
+import LanusStats as ls
 
+# Crear una instancia del objeto Sofascore
 sofascore = ScraperFC.Sofascore()
+sofascore_ls = ls.SofaScore()
 
-# Verificar si 2025 es una temporada válida para la liga
-seasons = sofascore.get_valid_seasons('U20 CONMEBOL')  # Llamada a la función
-if '2025' not in seasons:
-    print("La temporada 2025 no está disponible para la liga.")
-    exit()  # Sale del programa si la temporada no es válida
-print(seasons)
-# Parámetros de entrada
-liga = 'U20 CONMEBOL'  # Cambia por 'Liga 1 Peru' si es necesario
+# Pedir el match_id al usuario
+match_id = '13123301'  # Puedes cambiarlo o pedirlo como input al usuario
 
-# Ruta del archivo Excel
-base_path = f"GroneStats/GRONESTATS 1.0/{liga}"
+# Directorio de salida
+output_dir = "Sofascore_2025"
+os.makedirs(output_dir, exist_ok=True)
 
-# Crear la carpeta para el año 2025 si no existe
-anio = 2025
-path = os.path.join(base_path, str(anio))
-if not os.path.exists(path):
-    os.makedirs(path)
+# Nombre del archivo de salida
+output_file = os.path.join(output_dir, f'Sofascore_{match_id}.xlsx')
 
-# Ruta del archivo cache
-cache_file = os.path.join(path, "0_Matches.xlsx")
-
-# Crear el archivo vacío si no existe
-if not os.path.exists(cache_file):
-    with pd.ExcelWriter(cache_file, engine="openpyxl") as writer:
-        # Crear un archivo Excel vacío con una hoja inicial
-        pd.DataFrame().to_excel(writer, index=False, sheet_name='Matches')
-
-# Definir el DataFrame para almacenar los datos del partido
-matches_info_df = pd.DataFrame(columns=['match_id', 'match_url', 'home', 'home_id', 
-                                        'away', 'away_id', 'home_team_colors', 'away_team_colors',
-                                        'tournament', 'round_number', 'season'])
-
-# Obtener los datos del año 2025
 try:
-    partidos = sofascore.get_match_dicts(str(anio), liga)
-except Exception as e:
-    print(f"Error al obtener los datos para {anio}:", e)
-    partidos = []
-print(partidos)
-# Recolectar datos de cada partido
-for partido in partidos:
-    match_id = str(partido.get('id'))
+    # Obtener datos del partido
+    match_stats = sofascore.scrape_team_match_stats(match_id)
+    player_stats = sofascore.scrape_player_match_stats(match_id)
+    average_positions = sofascore.scrape_player_average_positions(match_id)
     match_url = sofascore.get_match_url_from_id(match_id)
-    tournament = partido.get('tournament', {}).get('name')
-    season = partido.get('season', {}).get('name')
-    round_number = partido.get('roundInfo', {}).get('round')
-    hid = partido.get('homeTeam', {}).get('id')
-    aid = partido.get('awayTeam', {}).get('id')
-    homeTeam = partido.get('homeTeam', {}).get('name')
-    awayTeam = partido.get('awayTeam', {}).get('name')
+    match_shotmap_df = sofascore_ls.get_match_shotmap(match_url)
+    match_momentum = sofascore.scrape_match_momentum(match_id)
+
+    # Obtener datos del heatmap
+    heatmap_data = sofascore.scrape_heatmaps(match_id)
+    heatmap_list = []
     
-    # Obtener los colores de los equipos
-    home_colors = partido.get('homeTeam', {}).get('teamColors', {})
-    away_colors = partido.get('awayTeam', {}).get('teamColors', {})
-    
-    # Formatear los colores para exportarlos
-    home_primary_color = home_colors.get('primary', '')
-    home_secondary_color = home_colors.get('secondary', '')
-    away_primary_color = away_colors.get('primary', '')
-    away_secondary_color = away_colors.get('secondary', '')
+    if heatmap_data:
+        for player_id, heatmap in heatmap_data.items():
+            heatmap_list.append({'player': player_id, 'heatmap': heatmap})
+        df_heatmaps = pd.DataFrame(heatmap_list)
+    else:
+        df_heatmaps = pd.DataFrame(columns=['player', 'heatmap'])  # DataFrame vacío con columnas correctas
 
-    match_info = pd.DataFrame({
-        'match_id': [match_id],
-        'match_url': [match_url],
-        'home': [homeTeam],
-        'home_id': [hid],
-        'away': [awayTeam],
-        'away_id': [aid],
-        'home_team_colors': [f"Primary: {home_primary_color}, Secondary: {home_secondary_color}"],
-        'away_team_colors': [f"Primary: {away_primary_color}, Secondary: {away_secondary_color}"],
-        'tournament': [tournament],
-        'round_number': [round_number],
-        'season': [season],
-    })
+    # Crear un archivo Excel con todos los datos en hojas separadas
+    with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+        match_stats.to_excel(writer, sheet_name='Team Stats', index=False)
+        player_stats.to_excel(writer, sheet_name='Player Stats', index=False)
+        average_positions.to_excel(writer, sheet_name='Average Positions', index=False)
+        match_shotmap_df.to_excel(writer, sheet_name='Shotmap', index=False)
+        match_momentum.to_excel(writer, sheet_name='Match Momentum', index=False)
+        
+        if not df_heatmaps.empty:
+            df_heatmaps.to_excel(writer, sheet_name='Heatmap', index=False)
 
-    matches_info_df = pd.concat([matches_info_df, match_info], ignore_index=True)
+    print(f"Datos exportados a {output_file} con éxito.")
 
-# Guardar toda la información en una sola hoja de Excel
-with pd.ExcelWriter(cache_file, engine="openpyxl", mode="a", if_sheet_exists='replace') as writer:
-    matches_info_df.to_excel(writer, index=False, sheet_name='Matches')
-
-print(f"Archivo Excel '{cache_file}' creado con éxito para el año {anio}.")
+except Exception as e:
+    print(f"Error al obtener datos para el partido {match_id}: {e}")
