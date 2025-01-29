@@ -147,7 +147,7 @@ with st.container():
 # =======================
 # Crear pestañas con Streamlit
 # =======================
-tabs = st.tabs(["Detalles del Partido", "Análisis de Jugadores", "Análisis de Torneo"])
+tabs = st.tabs(["Detalles del Partido", "Análisis de Jugadores", "Análisis de Torneo", "Contacto"])
 # =======================
 # Obtener posiciones promedio
 # =======================
@@ -509,3 +509,23 @@ with tabs[2]:
             st.write("Puntos de Presión necesarios para competir por el torneo:", resultados["pain_points_posibles"])
             mostrar_tarjeta_pain_points()
             st.warning(f"Próximamente: \n - Evolución de tabla de posiciones por ronda \n - Compara puntos de presión conseguidos con otros equipos")
+
+with tabs[3]:
+    st.header("💙 Colabora con un YAPE o PLIN 💰")
+    st.write(
+        "Tu apoyo nos ayudará a mejorar la plataforma y generar más contenido "
+        "para **YouTube**, **Instagram** y **X** de manera continua."
+    )
+
+    st.write("También puedes volverte **miembro** en nuestro canal de YouTube para disfrutar de beneficios como **sorteos de entradas y camisetas**.")
+
+    st.subheader("📱 Redes sociales")
+    st.markdown("🔴 **YouTube:** [GroneStats](https://www.youtube.com/@GroneStats)")
+    st.markdown("📸 **Instagram:** [@gronestatistics](https://www.instagram.com/gronestatistics)")
+    st.markdown("🐦 **X (Twitter):** [@alkagrone](https://twitter.com/alkagrone)")
+
+    st.image("yapeGronestats.jpeg", caption="Escanea y apoya con YAPE o PLIN 🙌")
+
+    st.header("📩 Contacto")
+    st.markdown("📧 **Correo electrónico:** alvarojohn1290@gmail.com")
+    st.markdown("👔 **LinkedIn:** Alvaro Cáceres Chávez(https://www.linkedin.com/in/alvarocacereschavez)")
