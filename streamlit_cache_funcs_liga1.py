@@ -269,7 +269,42 @@ def mostrar_tiros_y_goles(df_shotmaps, condicion, selected_team, opponent_team):
         df_shots_off_target_selected = df_shots_off_target_away
         df_shots_off_target_opponent = df_shots_off_target_local
     
-    goals_df = df_shotmaps[df_shotmaps['shotType'] == 'goal']
+    import pandas as pd
+import streamlit as st
+
+def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, opponent_team, condicion):
+    """
+    Procesa los tiros y goles, y los muestra en Streamlit.
+    
+    Parámetros:
+        df_shotmap (pd.DataFrame): DataFrame con los datos de los tiros.
+        df_average_positions (pd.DataFrame): DataFrame con las posiciones promedio de los jugadores.
+        selected_team (str): Nombre del equipo seleccionado.
+        opponent_team (str): Nombre del equipo oponente.
+        condicion (str): Condición del equipo seleccionado ("Local" o "Visitante").
+    
+    Retorna:
+        dict: Diccionario con los DataFrames de tiros al arco y fuera del arco para ambos equipos.
+    """
+    # Aplicar colores basados en el tipo de tiro
+    df_shotmap['color'] = df_shotmap['shotType'].apply(apply_color_based_on_shot_type)
+    
+    # Definir categorías de tiros
+    shots_on_target = ['save', 'goal']  # Tiros al arco
+    shots_off_target = ['miss', 'post', 'block']  # Tiros fuera del arco
+    
+    # Filtrar tiros al arco y fuera del arco
+    df_shots_on_target = df_shotmap[df_shotmap['shotType'].isin(shots_on_target)]
+    df_shots_off_target = df_shotmap[df_shotmap['shotType'].isin(shots_off_target)]
+    
+    # Separar tiros al arco y fuera del arco por equipo local y visitante
+    df_shots_on_target_selected = df_shots_on_target[df_shots_on_target['isHome'] == (condicion == "Local")]
+    df_shots_on_target_opponent = df_shots_on_target[df_shots_on_target['isHome'] != (condicion == "Local")]
+    df_shots_off_target_selected = df_shots_off_target[df_shots_off_target['isHome'] == (condicion == "Local")]
+    df_shots_off_target_opponent = df_shots_off_target[df_shots_off_target['isHome'] != (condicion == "Local")]
+    
+    # Procesar goles
+    goals_df = df_shotmap[df_shotmap['shotType'] == 'goal']
     
     if not goals_df.empty:
         # Extraer y mostrar los goles
@@ -315,4 +350,58 @@ def mostrar_tiros_y_goles(df_shotmaps, condicion, selected_team, opponent_team):
         'tiros_fuera_local': df_shots_off_target_selected,
         'tiros_fuera_away': df_shots_off_target_opponent
     }
+
+# Función para aplicar colores basados en el tipo de tiro
+def apply_color_based_on_shot_type(shot_type):
+    if shot_type == 'block':
+        return 'coral'
+    elif shot_type == 'miss':
+        return 'darkred'
+    elif shot_type == 'goal':
+        return 'darkgreen'
+    elif shot_type in ['save', 'post']:
+        return 'darkgoldenrod'
+    else:
+        return 'gray'
+
+# Código para cargar el archivo Excel en Streamlit
+uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
+
+if uploaded_file is not None:
+    try:
+        # Leer el archivo Excel
+        xls = pd.ExcelFile(uploaded_file)
+
+        # Asignar cada hoja a un DataFrame
+        df_team_stats = pd.read_excel(xls, sheet_name='Team Stats')
+        df_player_stats = pd.read_excel(xls, sheet_name='Player Stats')
+        df_average_positions = pd.read_excel(xls, sheet_name='Average Positions')
+        df_shotmap = pd.read_excel(xls, sheet_name='Shotmap')
+        df_match_momentum = pd.read_excel(xls, sheet_name='Match Momentum')
+        
+        # Verificar si la hoja 'Heatmap' existe antes de intentar leerla
+        if 'Heatmap' in xls.sheet_names:
+            df_heatmaps = pd.read_excel(xls, sheet_name='Heatmap')
+        else:
+            df_heatmaps = pd.DataFrame()  # DataFrame vacío si no existe la hoja
+
+        # Ejemplo de uso de la función procesar_tiros_y_goles
+        selected_team = "Equipo Local"  # Cambiar por el nombre del equipo seleccionado
+        opponent_team = "Equipo Visitante"  # Cambiar por el nombre del equipo oponente
+        condicion = "Local"  # Cambiar por "Local" o "Visitante"
+
+        resultados = procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, opponent_team, condicion)
+
+        # Mostrar resultados adicionales si es necesario
+        st.write("Tiros al arco (Local):")
+        st.dataframe(resultados['tiros_al_arco_local'])
+        st.write("Tiros al arco (Visitante):")
+        st.dataframe(resultados['tiros_al_arco_away'])
+        st.write("Tiros fuera del arco (Local):")
+        st.dataframe(resultados['tiros_fuera_local'])
+        st.write("Tiros fuera del arco (Visitante):")
+        st.dataframe(resultados['tiros_fuera_away'])
+
+    except Exception as e:
+        st.error(f"Error al leer el archivo Excel: {e}")
 
