@@ -1,12 +1,10 @@
 import pandas as pd
 import streamlit as st
 import ScraperFC
-import LanusStats as ls
 from io import BytesIO
 
 # Crear una instancia del objeto Sofascore
 sofascore = ScraperFC.Sofascore()
-sofascore_ls = ls.SofaScore()
 
 # Configuración de la página de Streamlit
 st.title("Scraping de Datos de Partidos de Fútbol")
@@ -22,7 +20,7 @@ if st.button("Obtener Datos y Generar Excel"):
         player_stats = sofascore.scrape_player_match_stats(match_id)
         average_positions = sofascore.scrape_player_average_positions(match_id)
         match_url = sofascore.get_match_url_from_id(match_id)
-        match_shotmap_df = sofascore_ls.get_match_shotmap(match_url)
+        match_shotmap_df = sofascore.scrape_match_shots(match_id)
         match_momentum = sofascore.scrape_match_momentum(match_id)
         heatmap_data = sofascore.scrape_heatmaps(match_id)
 

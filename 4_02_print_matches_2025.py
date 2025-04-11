@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import pandas as pd
 import streamlit as st
+import ast
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 import matplotlib.patheffects as path_effects
@@ -47,22 +48,45 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
     Retorna:
         dict: Diccionario con los DataFrames de tiros al arco y fuera del arco para ambos equipos.
     """
+    import json
+
+    # Función para corregir el formato del JSON y extraer el nombre
+    def corregir_y_extraer_nombre(player_string):
+        try:
+            # Reemplazar comillas simples por comillas dobles
+            player_string = player_string.replace("'", '"')
+            # Convertir la cadena a un diccionario JSON
+            player_dict = json.loads(player_string)
+            return player_dict.get('name', 'Nombre no encontrado') 
+        except json.JSONDecodeError:
+            return "Error en el formato JSON"
+
+    # Aplicar la corrección y extracción del nombre
+    df_shotmap['player_name'] = df_shotmap['player'].apply(corregir_y_extraer_nombre)
+
+    def corregir_y_extraer_numero(player_string):
+        try:
+            # Reemplazar comillas simples por comillas dobles
+            player_string = player_string.replace("'", '"')
+            # Convertir la cadena a un diccionario JSON
+            player_dict = json.loads(player_string)
+            return player_dict.get('jerseyNumber', 'Número no encontrado') 
+        except json.JSONDecodeError:
+            return "Error en el formato JSON"
+        
+    df_shotmap['jerseyNumber'] = df_shotmap['player'].apply(corregir_y_extraer_numero)
+
     # Aplicar colores basados en el tipo de tiro
     df_shotmap['color'] = df_shotmap['shotType'].apply(apply_color_based_on_shot_type)
     
     # Definir categorías de tiros
     shots_on_target = ['save', 'goal']  # Tiros al arco
     shots_off_target = ['miss', 'post', 'block']  # Tiros fuera del arco
-    
-    # Filtrar tiros al arco y fuera del arco
-    df_shots_on_target = df_shotmap[df_shotmap['shotType'].isin(shots_on_target)]
-    df_shots_off_target = df_shotmap[df_shotmap['shotType'].isin(shots_off_target)]
-    
-    # Separar tiros al arco y fuera del arco por equipo local y visitante
-    df_shots_on_target_selected = df_shots_on_target[df_shots_on_target['isHome'] == (condicion == "Local")]
-    df_shots_on_target_opponent = df_shots_on_target[df_shots_on_target['isHome'] != (condicion == "Local")]
-    df_shots_off_target_selected = df_shots_off_target[df_shots_off_target['isHome'] == (condicion == "Local")]
-    df_shots_off_target_opponent = df_shots_off_target[df_shots_off_target['isHome'] != (condicion == "Local")]
+
+    df_shotmap['coordinates'] = df_shotmap['playerCoordinates'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else {})
+    df_shotmap['x'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('x', None))
+    df_shotmap['y'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('y', None))
+    df_shotmap['z'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('z', None))
     
     # Procesar goles
     goals_df = df_shotmap[df_shotmap['shotType'] == 'goal']
@@ -89,7 +113,7 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
                 equipo = opponent_team if condicion == "Local" else selected_team
             
             # Agregar al equipo correspondiente
-            goles_por_equipo[equipo].append(f"{row['name']} - {minute}")
+            goles_por_equipo[equipo].append(f"{row['player_name']} - {minute}")
         
         e1, e2 = st.columns(2)
         
@@ -104,6 +128,15 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
 
     st.divider()
 
+    # Filtrar tiros al arco y fuera del arco
+    df_shots_on_target = df_shotmap[df_shotmap['shotType'].isin(shots_on_target)]
+    df_shots_off_target = df_shotmap[df_shotmap['shotType'].isin(shots_off_target)]
+    # Separar tiros al arco y fuera del arco por equipo local y visitante
+    df_shots_on_target_selected = df_shots_on_target[df_shots_on_target['isHome'] == (condicion == "Local")]
+    df_shots_on_target_opponent = df_shots_on_target[df_shots_on_target['isHome'] != (condicion == "Local")]
+    df_shots_off_target_selected = df_shots_off_target[df_shots_off_target['isHome'] == (condicion == "Local")]
+    df_shots_off_target_opponent = df_shots_off_target[df_shots_off_target['isHome'] != (condicion == "Local")]
+
     # Devolver los DataFrames de tiros al arco y fuera para ambos equipos
     return {
         'tiros_al_arco_local': df_shots_on_target_selected,
@@ -111,6 +144,7 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
         'tiros_fuera_local': df_shots_off_target_selected,
         'tiros_fuera_away': df_shots_off_target_opponent
     }
+
 
 # Función para aplicar colores basados en el tipo de tiro
 def apply_color_based_on_shot_type(shot_type):
@@ -235,7 +269,7 @@ def graficar_todos_los_tiros(df_local, df_visitante):
         patch = mpatches.Patch(
             facecolor=color,
             edgecolor='black',
-            label=f"{row['time']}' {row['name']} #{jersey_number} - {row['bodyPart']} | {row['situation']} | {row['shotType']}"
+            label=f"{row['time']}' {row['player_name']} #{jersey_number} - {row['bodyPart']} | {row['situation']} | {row['shotType']}"
         )
         if row['team'] == 'Local' and 0 <= row['time'] <= 45:
             legend_local_0_45.append(patch)
