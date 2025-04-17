@@ -1,0 +1,48 @@
+2025-04-15 21:55:09,776 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 21:55:13,627 - ERROR - Error al guardar Excel para 2025: [Errno 2] No such file or directory: 'GroneStats/GRONESTATS 1.0/Liga 1 Peru\\2025\\0_Matches.xlsx'
+2025-04-15 21:55:13,627 - INFO - Proceso completado para 2025.
+2025-04-15 21:56:44,366 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 21:56:46,944 - ERROR - Error al guardar Excel para 2025: [Errno 2] No such file or directory: 'GroneStats/GRONESTATS 1.0/Liga 1 Peru\\2025\\0_Matches.xlsx'
+2025-04-15 21:56:46,945 - INFO - Proceso completado para 2025.
+2025-04-15 21:57:04,502 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 21:57:06,932 - ERROR - Error al guardar Excel para 2025: [Errno 2] No such file or directory: 'GRONESTATS 1.0/Liga 1 Peru\\2025\\0_Matches.xlsx'
+2025-04-15 21:57:06,932 - INFO - Proceso completado para 2025.
+2025-04-15 21:57:47,296 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 21:57:49,501 - ERROR - Error al guardar Excel para 2025: [Errno 2] No such file or directory: 'GRONESTATS 1.0/Liga 1 Peru\\2025\\0_Matches.xlsx'
+2025-04-15 21:57:49,501 - INFO - Proceso completado para 2025.
+2025-04-15 21:59:20,510 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 21:59:22,991 - ERROR - Error al guardar Excel para 2025: if_sheet_exists is only valid in append mode (mode='a')
+2025-04-15 21:59:22,991 - INFO - Proceso completado para 2025.
+2025-04-15 22:00:16,604 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:00:19,385 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-15 22:02:39,805 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:02:39,805 - INFO - Proceso completado.
+2025-04-15 22:13:58,829 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:13:58,830 - INFO - Proceso completado.
+2025-04-15 22:14:08,107 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:14:10,989 - INFO - Datos limpiados: 70 partidos después de la limpieza
+2025-04-15 22:14:49,514 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:14:49,514 - INFO - Proceso completado.
+2025-04-15 22:15:33,533 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:15:35,590 - INFO - Datos limpiados: 70 partidos después de la limpieza
+2025-04-15 22:15:42,679 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:15:42,679 - INFO - Proceso completado.
+2025-04-15 22:15:53,815 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:16:19,915 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:16:19,915 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-15 22:16:25,129 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:16:27,861 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-15 22:17:47,119 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-15 22:17:47,119 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-15 22:17:52,958 - INFO - 73 partidos encontrados para Liga 1 Peru en 2025
+2025-04-15 22:17:53,065 - INFO - Partido con ID 13566000 entre Los Chankas CYC y Cienciano no tiene puntajes. Se omite.
+2025-04-15 22:17:54,230 - INFO - Partido con ID 13387768 entre Club Atlético Grau y Universitario no tiene puntajes. Se omite.
+2025-04-15 22:17:54,344 - INFO - Partido con ID 13523645 entre Los Chankas CYC y Cienciano no tiene puntajes. Se omite.
+2025-04-15 22:17:54,543 - INFO - Partido con ID 13523627 entre ADC Juan Pablo II y Melgar no tiene puntajes. Se omite.
+2025-04-15 22:17:54,626 - INFO - Partido con ID 13565846 entre Alianza Universidad y Deportivo Garcilaso no tiene puntajes. Se omite.
+2025-04-15 22:17:54,690 - INFO - Partido con ID 13565842 entre Universidad Técnica de Cajamarca y Alianza Atlético de Sullana no tiene puntajes. Se omite.
+2025-04-15 22:17:55,416 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-17 17:33:05,907 - INFO - Archivo ya existe para 2025, se omite scraping.
+2025-04-17 17:33:05,908 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-17 17:33:47,909 - ERROR - Error al obtener los datos para 2025: Expecting value: line 2 column 1 (char 1)
+2025-04-17 17:33:47,910 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.

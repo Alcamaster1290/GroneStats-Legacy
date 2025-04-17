@@ -1,7 +1,5 @@
 import pandas as pd
 import streamlit as st
-import pandas as pd
-import streamlit as st
 import ast
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches

@@ -1,57 +1,111 @@
-import streamlit as st
+import os
 import pandas as pd
+import logging
+import ScraperFC
 
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("scraper_liga1.log"),
+        logging.StreamHandler()
+    ]
+)
 
-data = [
-    ("Sofascore_13352931", "Alianza Lima vs Cusco FC", "Alianza Lima", "Cusco FC", 1),
-    ("Sofascore_13352939", "Sport Huancayo vs AAS", "Sport Huancayo", "AAS", 1),
-    ("Sofascore_13352933", "Melgar vs UTC", "Melgar", "UTC", 1),
-    ("Sofascore_13352937", "Grau vs Ayacucho", "Grau", "Ayacucho", 1),
-    ("Sofascore_13352938", "AUDH vs Cristal", "AUDH", "Cristal", 1),
-    ("Sofascore_13352936", "Sport Boys vs JPII", "Sport Boys", "JPII", 1),
-    ("Sofascore_13352932", "Comerciantes vs U", "Comerciantes", "U", 1),
-    ("Sofascore_13352934", "Cienciano vs ADT", "Cienciano", "ADT", 1),
-    ("Sofascore_13352935", "Chankas vs Garcilaso", "Chankas", "Garcilaso", 1),
-    ("Sofascore_13387751", "AAS vs Alianza Lima", "AAS", "Alianza Lima", 2),
-    ("Sofascore_13387758", "Cusco FC vs Melgar", "Cusco FC", "Melgar", 2),
-    ("Sofascore_13387752", "UTC vs Binacional", "UTC", "Binacional", 2),
-    ("Sofascore_13387755", "ADT vs Grau", "ADT", "Grau", 2),
-    ("Sofascore_13387756", "U vs Cienciano", "U", "Cienciano", 2),
-    ("Sofascore_13387757", "Cristal vs Sport Boys", "Cristal", "Sport Boys", 2),
-    ("Sofascore_13387753", "JPII vs Huancayo", "JPII", "Huancayo", 2),
-    ("Sofascore_13387754", "Garcilaso vs Comerciantes", "Garcilaso", "Comerciantes", 2),
-    ("Sofascore_13387759", "Ayacucho vs AUDH", "Ayacucho", "AUDH", 2),
-    ("Sofascore_13387774", "Alianza Lima vs JPII", "Alianza Lima", "JPII", 3),
-    ("Sofascore_13387770", "Sport Boys vs Ayacucho", "Sport Boys", "Ayacucho", 3),
-    ("Sofascore_13387767", "Cienciano vs Garcilaso", "Cienciano", "Garcilaso", 3),
-    ("Sofascore_13387766", "Sport Huancayo vs Cristal", "Sport Huancayo", "Cristal", 3),
-    ("Sofascore_13387772", "Binacional vs Cusco FC", "Binacional", "Cusco FC", 3),
-    ("Sofascore_13387773", "AUDH vs ADT", "AUDH", "ADT", 3),
-    ("Sofascore_13387769", "Melgar vs AAS", "Melgar", "AAS", 3),
-    ("Sofascore_13387771", "Comerciantes vs Chankas", "Comerciantes", "Chankas", 3),
-    ("Sofascore_13523624", "Ayacucho vs Sp. Huancayo", "Ayacucho", "Sport Huancayo", 4),
-    ("Sofascore_13523626", "Cristal vs Alianza Lima", "Cristal", "Alianza Lima", 4),
-    ("Sofascore_13523644", "AAS vs Binacional", "AAS", "Binacional", 4),
-    ("Sofascore_13523647", "Cusco FC vs UTC", "Cusco FC", "UTC", 4),
-    ("Sofascore_13523648", "Garcilaso vs Grau", "Garcilaso", "Grau", 4),
-    ("Sofascore_13523646", "ADT vs Sport Boys", "ADT", "Sport Boys", 4),
-    ("Sofascore_13523625", "U vs AUDH", "U", "AUDH", 4),
-    ("Sofascore_13565846", "AUDH vs Garcilaso", "AUDH", "Garcilaso", 5),
-    ("Sofascore_13565847", "Alianza Lima vs Ayacucho", "Alianza Lima", "Ayacucho", 5),
-    ("Sofascore_13565842", "UTC vs AAS", "UTC", "AAS", 5),
-    ("Sofascore_13565844", "Sport Huancayo vs ADT", "Sport Huancayo", "ADT", 5),
-    ("Sofascore_13565845", "Melgar vs Cristal", "Melgar", "Cristal", 5),
-    ("Sofascore_13565843", "Sport Boys vs U", "Sport Boys", "U", 5),
-    ("Sofascore_13565841", "Cienciano vs Comerciantes", "Cienciano", "Comerciantes", 5),
-    ("Sofascore_13565883", "Grau vs Los Chankas", "Grau", "Los Chankas", 5),
-    ("Sofascore_13565884", "Binacional vs JPII", "Binacional", "JPII", 5),
-]
+sofascore = ScraperFC.Sofascore()
 
-df = pd.DataFrame(data, columns=["ID_Sofascore", "Nombre Partido", "home", "away", "# Jornada"])
+# Parámetros de entrada
+liga = 'Liga 1 Peru'
+base_path = f"GRONESTATS 1.0/{liga}"
 
-# Eliminar el prefijo "Sofascore_" del ID
-df["ID_Sofascore"] = df["ID_Sofascore"].str.replace("Sofascore_", "", regex=False)
+# Iterar sobre los años de 2022 a 2024
+for anio in range(2025, 2026):
+    path = os.path.join(base_path, str(anio))
+    cache_file = os.path.join(path, "0_Matches.xlsx")
 
+    if os.path.exists(cache_file):
+        logging.info(f"Archivo ya existe para {anio}, se omite scraping.")
+        continue
 
-st.title("Lista de Partidos")
-st.dataframe(df)
+    matches_info_df = pd.DataFrame(columns=[
+        'match_id', 'match_url', 'home', 'home_id', 'home_score',
+        'away', 'away_id', 'away_score', 'home_team_colors', 'away_team_colors',
+        'tournament', 'tournament_id', 'round_number', 'season', 'season_id'
+    ])
+
+    try:
+        partidos = sofascore.get_match_dicts(str(anio), liga)
+        logging.info(f"{len(partidos)} partidos encontrados para {liga} en {anio}")
+    except Exception as e:
+        logging.error(f"Error al obtener los datos para {anio}: {e}")
+        continue
+
+    for partido in partidos:
+        try:
+            match_id = str(partido.get('id'))
+            match_url = sofascore.get_match_url_from_id(match_id)
+            tournament = partido.get('tournament', {}).get('name')
+            tournament_id = partido.get('tournament', {}).get('id')
+            season = partido.get('season', {}).get('name')
+            season_id = partido.get('season', {}).get('id')
+            round_number = partido.get('roundInfo', {}).get('round')
+            hid = partido.get('homeTeam', {}).get('id')
+            aid = partido.get('awayTeam', {}).get('id')
+            homeTeam = partido.get('homeTeam', {}).get('name')
+            awayTeam = partido.get('awayTeam', {}).get('name')
+            homeScore = partido.get('homeScore', {}).get('current')
+            awayScore = partido.get('awayScore', {}).get('current')
+
+            home_colors = partido.get('homeTeam', {}).get('teamColors', {})
+            away_colors = partido.get('awayTeam', {}).get('teamColors', {})
+            home_primary_color = home_colors.get('primary', '')
+            home_secondary_color = home_colors.get('secondary', '')
+            away_primary_color = away_colors.get('primary', '')
+            away_secondary_color = away_colors.get('secondary', '')
+
+            # Verificar si ambos puntajes están vacíos, y si es así, eliminarlo y logearlo
+            if not homeScore and not awayScore:
+                logging.info(f"Partido con ID {match_id} entre {homeTeam} y {awayTeam} no tiene puntajes. Se omite.")
+                continue
+
+            match_info = pd.DataFrame({
+                'match_id': [match_id],
+                'match_url': [match_url],
+                'home': [homeTeam],
+                'home_id': [hid],
+                'home_score': [homeScore],
+                'away': [awayTeam],
+                'away_id': [aid],
+                'away_score': [awayScore],
+                'home_team_colors': [f"Primary: {home_primary_color}, Secondary: {home_secondary_color}"],
+                'away_team_colors': [f"Primary: {away_primary_color}, Secondary: {away_secondary_color}"],
+                'tournament': [tournament],
+                'tournament_id': [tournament_id],
+                'round_number': [round_number],
+                'season': [season],
+                'season_id': [season_id]
+            })
+
+            matches_info_df = pd.concat([matches_info_df, match_info], ignore_index=True)
+
+        except Exception as e:
+            logging.warning(f"Error al procesar partido con ID {partido.get('id')}: {e}")
+            continue
+    
+    # Verifica si el archivo existe
+    if not os.path.exists(cache_file):
+        writer_mode = "w"  # Escribir nuevo archivo
+    else:
+        writer_mode = "a"  # Agregar a archivo existente
+
+    # Al momento de escribir, si el archivo existe, usa el parámetro 'if_sheet_exists'
+    with pd.ExcelWriter(cache_file, engine="openpyxl", mode=writer_mode) as writer:
+        if writer_mode == "a":
+            # Solo cuando el archivo ya existe, puedes reemplazar hojas
+            matches_info_df.to_excel(writer, index=False, sheet_name='Partidos', if_sheet_exists='replace')
+        else:
+            # Si es nuevo, no se necesita 'if_sheet_exists'
+            matches_info_df.to_excel(writer, index=False, sheet_name='Partidos')
+
+logging.info(f"Archivo Excel '{cache_file}' creado con éxito para el año {anio}.")

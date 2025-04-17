@@ -75,7 +75,7 @@ Sofascore_13668056 -> Binacional vs Ayacucho   | Liga 1 2025 J7
 Sofascore_13668057 -> Sp Huancayo vs Garcilaso | Liga 1 2025 J7
 Sofascore_13668058 -> Grau vs Cienciano        | Liga 1 2025 J7
 Sofascore_13672966 -> Melgar vs ADT            | Liga 1 2025 J7
-Sofascore_13668495 -> Alianza Lima vs U        | Liga 1 2025 J7
+Sofascore_13668495 -> AL vs U		       | Liga 1 2025 J7
 Sofascore_13668478 -> Cusco vs Juan Pablo II   | Liga 1 2025 J7
 Sofascore_13668480 -> Sport Boys vs Chankas    | Liga 1 2025 J7
 Sofascore_13668481 -> UTC vs Cristal           | Liga 1 2025 J7
@@ -83,13 +83,13 @@ Sofascore_13668479 -> AUDH vs Comerciantes     | Liga 1 2025 J7
 
 Sofascore_13679408  -> Ayacucho vs UTC         | Liga 1 2025 J8
 Sofascore_13679410  -> Chankas vs Sp. Huancayo | Liga 1 2025 J8
-Sofascore_  -> JPII vs AAS | Liga 1 2025 J8
-Sofascore_  -> Cienciano vs AUDH | Liga 1 2025 J8
-Sofascore_  -> Cristal vs Cusco | Liga 1 2025 J8
-Sofascore_  -> Comerciantes vs Sport Boys | Liga 1 2025 J8
-Sofascore_  -> ADT vs Binacional | Liga 1 2025 J8
-Sofascore_  -> U vs Melgar | Liga 1 2025 J8
-Sofascore_  -> Garcilaso vs Alianza Lima | Liga 1 2025 J8
+Sofascore_13679409  -> JPII vs AAS 	       | Liga 1 2025 J8
+Sofascore_13679411  -> Cienciano vs AUDH       | Liga 1 2025 J8
+Sofascore_13679403  -> Cristal vs Cusco        | Liga 1 2025 J8
+Sofascore_13679405  -> Comerciantes vs Boys    | Liga 1 2025 J8
+Sofascore_13679395  -> ADT vs Binacional       | Liga 1 2025 J8
+Sofascore_13679402  -> U vs Melgar 	       | Liga 1 2025 J8
+Sofascore_13679398  -> Garcilaso vs AL         | Liga 1 2025 J8
 
 Sofascore_  -> AUDH vs Grau         | Liga 1 2025 J9
 Sofascore_  -> Melgar vs Garcilaso | Liga 1 2025 J9
