@@ -214,7 +214,7 @@ if selected_match_id in players_data:
     player_sheet_data = players_data[selected_match_id]
 
     ini_columns = ['id', 'teamId', 'teamName', 'name', 'shirtNumber', 'position', 'substitute', 'captain'] # No todos tienen 'height'
-    player_sheet_data_ini = player_sheet_data[ini_columns]
+    player_sheet_data_ini = player_sheet_data[ini_columns].copy()
 
     base_columns = ['minutesPlayed', 'goals','goalAssist', 'rating',
                     'accuratePass', 'totalPass', 'keyPass', 'accurateLongBalls', 'totalLongBalls', 'accurateCross', 'totalCross', 
@@ -353,7 +353,8 @@ with tabs[0]:
         
     with col2:
         if not shotmap.empty:
-            resultados = mostrar_tiros_y_goles(shotmap, condicion, selected_team, opponent_team)
+            resultados = procesar_tiros(shotmap, condicion)
+            mostrar_tiros_y_goles(shotmap, selected_team, opponent_team, condicion)
             df_tiros_ot_local = resultados['tiros_al_arco_local'].copy()
             df_tiros_off_local = resultados['tiros_fuera_local'].copy()
             df_tiros_ot_away = resultados['tiros_al_arco_away'].copy()
@@ -433,7 +434,7 @@ with tabs[1]:
         else:
             col1, col2, col3 = st.columns([1,3,1])
             with col1:
-                st.markdown(f"Equipo titular {selected_team}")
+                st.subheader(f"Equipo titular {selected_team}")
                 #st.dataframe(selected_titulares)
                 mostrar_dataframe_titulares(selected_titulares)
 
@@ -447,7 +448,13 @@ with tabs[1]:
             with col2:
                 if not shotmap.empty:
                     st.text("Posición promedio de ambos equipos y zona de disparos al arco\n")
-                    df_shots_on_target_local, df_shots_on_target_away, df_shots_off_target_local, df_shots_off_target_away = procesar_tiros(shotmap, condicion)
+                    df_tiros = procesar_tiros(shotmap, condicion)
+
+                    # Accede a cada uno con su clave
+                    df_shots_on_target_local = df_tiros["tiros_al_arco_local"]
+                    df_shots_on_target_away = df_tiros["tiros_al_arco_away"]
+                    df_shots_off_target_local = df_tiros["tiros_fuera_local"]
+                    df_shots_off_target_away = df_tiros["tiros_fuera_away"]
 
                     df_shots_local = pd.concat([df_shots_on_target_local, df_shots_off_target_local])
                     df_shots_away = pd.concat([df_shots_on_target_away, df_shots_off_target_away])
@@ -460,7 +467,7 @@ with tabs[1]:
                     st.pyplot(basicFormation, use_container_width=True)
 
             with col3:
-                st.markdown(f"Equipo titular {opponent_team}")
+                st.subheader(f"Equipo titular {opponent_team}")
                 #st.dataframe(opponent_titulares)
                 mostrar_dataframe_titulares(opponent_titulares)
                 if not opponent_ins.empty:

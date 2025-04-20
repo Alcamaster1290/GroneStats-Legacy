@@ -46,3 +46,15 @@
 2025-04-17 17:33:05,908 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
 2025-04-17 17:33:47,909 - ERROR - Error al obtener los datos para 2025: Expecting value: line 2 column 1 (char 1)
 2025-04-17 17:33:47,910 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-20 14:16:36,558 - INFO - Archivo ya existe para 2022, se omite scraping.
+2025-04-20 14:16:36,559 - INFO - Archivo ya existe para 2023, se omite scraping.
+2025-04-20 14:16:36,559 - INFO - Archivo ya existe para 2024, se omite scraping.
+2025-04-20 14:16:36,559 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2024\0_Matches.xlsx' creado con éxito para el año 2024.
+2025-04-20 14:18:53,298 - ERROR - Error al obtener los datos para 2025: Expecting value: line 2 column 1 (char 1)
+2025-04-20 14:18:53,302 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-20 14:19:37,206 - INFO - Archivo ya existe para 2024, se omite scraping.
+2025-04-20 14:19:37,272 - ERROR - Error al obtener los datos para 2025: Expecting value: line 2 column 1 (char 1)
+2025-04-20 14:19:37,272 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.
+2025-04-20 14:20:00,629 - ERROR - Error al obtener los datos para 2024: Expecting value: line 2 column 1 (char 1)
+2025-04-20 14:20:00,654 - ERROR - Error al obtener los datos para 2025: Expecting value: line 2 column 1 (char 1)
+2025-04-20 14:20:00,655 - INFO - Archivo Excel 'GRONESTATS 1.0/Liga 1 Peru\2025\0_Matches.xlsx' creado con éxito para el año 2025.

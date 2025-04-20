@@ -432,29 +432,23 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
         "Ball possession": "% Posesión de balón",
         "Expected goals": "Goles esperados (xG)",
         "Total shots": "Tiros totales",
-        
-
         "Goalkeeping": "Arquero",
         "Goal kicks": "Saques de meta",
         "Total saves": "Atajadas totales",
-        "Attack" : "Fase Ofensiva",
-        "Touches in penalty area": "Toques en zona penal contraria",
-        "Big chances": "Grandes oportunidades",
-        "Big chances missed": "Grandes oportunidades falladas",
-        "Big chances scored": "Grandes oportunidades anotadas",
         "Fouled in final third": "Recibio falta en el último tercio",
         "Offsides": "Fuera de juego", # Extraer
-
-        "Defending" : "Fase Defensiva",
-        
-       
         "Goalkeeper saves": "Atajadas del portero",
         "Corner kicks": "Tiros de esquina",
         "Free kicks": "Tiros libres",
         "Tackles": "Entradas",
         "Passes": "Pases",
         "Fouls": "Faltas",
-        
+        "Attack" : "Fase Ofensiva",
+        "Touches in penalty area": "Toques en zona penal contraria",
+        "Big chances": "Grandes oportunidades",
+        "Big chances missed": "Grandes oportunidades falladas",
+        "Big chances scored": "Grandes oportunidades anotadas",
+        "Defending" : "Fase Defensiva",
         "Recoveries": "% Recuperaciones", #Extraer
         "Clearances": "Despejes",
         "Interceptions": "Intercepciones",
@@ -463,8 +457,7 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
         "Dribbles": "Regates",
         "Aerial duels": "Duelos aéreos",
         "Ground duels": "Duelos en el suelo",
-        "Dispossessed": "Perdidas de balón",
-        "Duels": "Duelos",        
+        "Dispossessed": "Perdidas de balón",    
         "Accurate passes": "Pases precisos",
         "Throw-ins": "Saques de banda",
         "Final third entries": "Entradas al último tercio",
@@ -473,12 +466,34 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
         "Crosses": "Centros",
         "Shots": "Tiros",
         "Shots inside box": "Tiros dentro del área",
+        "Shots outside box": "Tiros fuera del área",
         "Shots on target": "Tiros a puerta",
         "Hit woodwork": "Tiros al poste",
         "Shots off target": "Tiros desviados",
         "Blocked shots": "Tiros bloqueados",
-        "Shots outside box": "Tiros fuera del área",
     }
+
+    grupos_ordenados = [
+        "Match overview", "Ball possession", "Expected goals", "Total shots",
+        "Shots", "Shots outside box", "Shots inside box", 
+        "Shots off target", "Blocked shots", "Shots on target", "Hit woodwork",
+        "Goalkeeping", "Total saves", "Goal kicks",
+        "Offsides", "Goalkeeper saves", "Corner kicks", "Free kicks", 
+        "Tackles", "Passes", "Fouls", "Attack", "Fouled in final third", "Touches in penalty area", 
+        "Big chances", "Big chances missed", "Big chances scored", 
+        "Defending", "Recoveries", "Clearances", "Interceptions", "Total tackles", 
+        "Tackles won", "Dribbles", "Aerial duels", "Ground duels", 
+        "Dispossessed", "Duelos", "Accurate passes", "Throw-ins", 
+        "Final third entries", "Final third phase", "Long balls", "Crosses",
+    ]
+
+    stats['name'] = stats['name'].replace({
+        'Duels': '% Duelos ganados'
+    })
+
+    stats['group'] = stats['group'].replace({
+        'Duels': 'Duelos',
+    })
 
     # Oscurecer color secundario
     rgb_color = mcolors.hex2color(color_secundario)
@@ -495,13 +510,15 @@ def generar_html_equipo(equipo, stats, color_primario, color_secundario, red_car
 
     # Agrupar estadísticas por 'group' y generar HTML
     grouped_stats = stats.groupby('group')
-    for group, group_data in grouped_stats:
-        grupo_traducido = traducciones.get(group, group)  # Traducir grupo si está en el diccionario
-        html += f"<h4 style='color: {color_primario if group == 'Match overview' else color_secundario}; text-shadow: 1px 1px 1px grey;'>{grupo_traducido}</h4>"
-        
-        for _, row in group_data.iterrows():
-            nombre_traducido = traducciones.get(row['name'], row['name'])  # Traducir nombre si está en el diccionario
-            html += f"<p>{nombre_traducido}: {int(row['Valor'])}</p>"
+
+    for group in grupos_ordenados:
+        if group in grouped_stats.groups:
+            group_data = grouped_stats.get_group(group)
+            grupo_traducido = traducciones.get(group, group)  # Traducción del grupo
+            html += f"<h4 style='color: {color_primario if group == 'Match overview' else color_secundario}; text-shadow: 1px 1px 1px grey;'>{grupo_traducido}</h4>"
+            for _, row in group_data.iterrows():
+                nombre_traducido = traducciones.get(row['name'], row['name'])  # Traducción del nombre de la estadística
+                html += f"<p>{nombre_traducido}: {int(row['Valor'])}</p>"
 
     html += "</div>"
     return html

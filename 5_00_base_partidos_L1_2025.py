@@ -20,7 +20,7 @@ liga = 'Liga 1 Peru'
 base_path = f"GRONESTATS 1.0/{liga}"
 
 # Iterar sobre los años de 2022 a 2024
-for anio in range(2025, 2026):
+for anio in range(2024, 2026):
     path = os.path.join(base_path, str(anio))
     cache_file = os.path.join(path, "0_Matches.xlsx")
 
