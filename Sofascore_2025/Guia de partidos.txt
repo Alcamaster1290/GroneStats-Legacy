@@ -70,7 +70,6 @@ Sofascore_13596384 -> Cristal vs Binacional    | Liga 1 2025 J6
 Sofascore_13596383 -> Los Chankas vs AUDH      | Liga 1 2025 J6
 Sofascore_13596388 -> JPII vs UTC              | Liga 1 2025 J6
 
-
 Sofascore_13668056 -> Binacional vs Ayacucho   | Liga 1 2025 J7
 Sofascore_13668057 -> Sp Huancayo vs Garcilaso | Liga 1 2025 J7
 Sofascore_13668058 -> Grau vs Cienciano        | Liga 1 2025 J7
@@ -80,6 +79,8 @@ Sofascore_13668478 -> Cusco vs Juan Pablo II   | Liga 1 2025 J7
 Sofascore_13668480 -> Sport Boys vs Chankas    | Liga 1 2025 J7
 Sofascore_13668481 -> UTC vs Cristal           | Liga 1 2025 J7
 Sofascore_13668479 -> AUDH vs Comerciantes     | Liga 1 2025 J7
+
+------ FALTA ACTUALIZAR X BARRERA DE SOFASCORE
 
 Sofascore_13679408  -> Ayacucho vs UTC         | Liga 1 2025 J8
 Sofascore_13679410  -> Chankas vs Sp. Huancayo | Liga 1 2025 J8

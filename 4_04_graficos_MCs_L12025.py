@@ -120,12 +120,12 @@ st.title("Análisis de Mediocampistas | Liga 1 Perú 2025")
 input_dir = "Sofascore_2025/Liga 1 2025"
 
 with st.form(key="filter_form"):
-    num_semanas = 4
+    num_semanas = 7
     max_minutes_played = 90 * num_semanas
     half_max_minutes_played = int(round(max_minutes_played / 2, 1))
     min_minutes_played = st.slider("Selecciona el mínimo de minutos jugados", 90, max_minutes_played, half_max_minutes_played, step=5)
     metric_choice = st.radio("Selecciona el tipo de métrica:", ["Totales","Por 90 minutos"])
-    submit_button = st.form_submit_button(label="Imprimir gráfico")
+    submit_button = st.form_submit_button(label="Mostrar gráfico")
 
 import io
 
