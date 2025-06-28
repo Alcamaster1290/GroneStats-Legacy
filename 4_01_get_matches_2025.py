@@ -1,92 +1,137 @@
 import pandas as pd
 import streamlit as st
-import ScraperFC
+#import ScraperFC
+from LanusStats import SofaScore
 from io import BytesIO
 
+def parse_match_summary(data):
+    resumen = {
+        "Equipo Local": data["homeTeam"]["name"],
+        "Manager Local": data["homeTeam"]["manager"]["name"],
+        "Goles 1T Local": data["homeScore"]["period1"],
+        "Goles 2T Local": data["homeScore"]["period2"],
+        "Total Goles Local": data["homeScore"]["display"],
+
+        "Equipo Visitante": data["awayTeam"]["name"],
+        "Manager Visitante": data["awayTeam"]["manager"]["name"],
+        "Goles 1T Visitante": data["awayScore"]["period1"],
+        "Goles 2T Visitante": data["awayScore"]["period2"],
+        "Total Goles Visitante": data["awayScore"]["display"],
+
+        "Resultado Final": f"{data['homeScore']['display']} - {data['awayScore']['display']}",
+        "Estadio": data["venue"]["name"],
+        "Ciudad": data["venue"]["city"]["name"],
+        "Fecha": pd.to_datetime(data["startTimestamp"], unit="s"),
+    }
+
+    return pd.DataFrame([resumen])
+
+def rename_duplicate_columns(df):
+    cols = pd.Series(df.columns)
+    for dup in cols[cols.duplicated()].unique():
+        dups = cols[cols == dup].index.tolist()
+        for i, idx in enumerate(dups):
+            if i == 0:
+                continue
+            cols[idx] = f"{dup}_{i}"
+    df.columns = cols
+    return df
+
+
 # Crear una instancia del objeto Sofascore
-sofascore = ScraperFC.Sofascore()
+#sofascore = ScraperFC.Sofascore()
+sofascore = SofaScore()
 
 # Configuración de la página de Streamlit
 st.title("Scraping de Datos de Partidos de Fútbol")
 st.write("Esta aplicación realiza scraping de datos de partidos de fútbol desde Sofascore y permite descargar los datos en un archivo Excel.")
 
 # Pedir el match_id al usuario
-match_id = st.text_input("Introduce el ID del partido:")
+match_url = st.text_input("Introduce el URL del partido:")
 
 if st.button("Obtener Datos y Generar Excel"):
     try:
-        # Obtener datos del partido
-        match_stats = sofascore.scrape_team_match_stats(match_id)
-        player_stats = sofascore.scrape_player_match_stats(match_id)
-        average_positions = sofascore.scrape_player_average_positions(match_id)
-        match_url = sofascore.get_match_url_from_id(match_id)
-        match_shotmap_df = sofascore.scrape_match_shots(match_id)
-        match_momentum = sofascore.scrape_match_momentum(match_id)
-        heatmap_data = sofascore.scrape_heatmaps(match_id)
+        match_id = sofascore.get_match_id(match_url)
+        match_stats = sofascore.get_match_data(match_url) # Objeto dict
 
-        heatmap_list = [{"player": pid, "heatmap": heatmap} for pid, heatmap in heatmap_data.items()] if heatmap_data else []
-        df_heatmaps = pd.DataFrame(heatmap_list) if heatmap_list else pd.DataFrame(columns=["player", "heatmap"])
+        if isinstance(match_stats, dict) and "event" in match_stats:
+            event = match_stats["event"]
+            match_stats_df = parse_match_summary(event)
+            st.dataframe(match_stats_df)
+        else:
+            st.error("No se pudo obtener información del partido. Favor de verificar el URL.")
 
-        # Función para eliminar columnas duplicadas
-        def remove_duplicate_columns(df):
-            cols = pd.Series(df.columns)
-            for dup in cols[cols.duplicated()].unique():
-                cols[cols[cols == dup].index.tolist()] = [
-                    f"{dup}_{i}" if i != 0 else dup for i in range(sum(cols == dup))
-                ]
-            df.columns = cols
-            return df
+        player_stats_home, player_stats_away = sofascore.get_players_match_stats(match_url)
 
-        # Limpiar DataFrames
-        match_stats = remove_duplicate_columns(match_stats)
-        player_stats = remove_duplicate_columns(player_stats)
-        average_positions = remove_duplicate_columns(average_positions)
-        match_shotmap_df = remove_duplicate_columns(match_shotmap_df)
-        match_momentum = remove_duplicate_columns(match_momentum)
-        df_heatmaps = remove_duplicate_columns(df_heatmaps)
+        player_stats_home["Equipo"] = "Local"
+        player_stats_away["Equipo"] = "Visitante"
+
+        player_stats_home = rename_duplicate_columns(player_stats_home)
+        player_stats_away = rename_duplicate_columns(player_stats_away)
+
+        player_stats_df = pd.concat([player_stats_home, player_stats_away], ignore_index=True)
+
+        # Posiciones promedio de los jugadores
+        average_positions = sofascore.get_players_average_positions(match_url) 
+        average_positions_home, average_positions_away = sofascore.get_players_average_positions(match_url)
+        average_positions_home["Equipo"] = "Local"
+        average_positions_away["Equipo"] = "Visitante"
+        # Renombrar columnas duplicadas posicion promedio
+        average_positions_home = rename_duplicate_columns(average_positions_home)
+        average_positions_away = rename_duplicate_columns(average_positions_away)
+        # Combinar posiciones promedio de ambos equipos
+        average_positions_df = pd.concat([average_positions_home, average_positions_away], ignore_index=True)
+
+
+        #match_shotmap_df = sofascore.scrape_match_shots(match_id)
+        #match_momentum = sofascore.scrape_match_momentum(match_id)
+        #heatmap_data = sofascore.scrape_heatmaps(match_id)
+
+        #heatmap_list = [{"player": pid, "heatmap": heatmap} for pid, heatmap in heatmap_data.items()] if heatmap_data else []
+        #df_heatmaps = pd.DataFrame(heatmap_list) if heatmap_list else pd.DataFrame(columns=["player", "heatmap"])
 
         # Guardar en memoria en lugar de archivo local
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            match_stats.to_excel(writer, sheet_name='Team Stats', index=False)
-            player_stats.to_excel(writer, sheet_name='Player Stats', index=False)
-            average_positions.to_excel(writer, sheet_name='Average Positions', index=False)
-            match_shotmap_df.to_excel(writer, sheet_name='Shotmap', index=False)
-            match_momentum.to_excel(writer, sheet_name='Match Momentum', index=False)
-            if not df_heatmaps.empty:
-                df_heatmaps.to_excel(writer, sheet_name='Heatmap', index=False)
+        #output = BytesIO()
+        #with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        #    match_stats.to_excel(writer, sheet_name='Team Stats', index=False)
+    #        player_stats.to_excel(writer, sheet_name='Player Stats', index=False)
+    #        average_positions.to_excel(writer, sheet_name='Average Positions', index=False)
+    #        match_shotmap_df.to_excel(writer, sheet_name='Shotmap', index=False)
+    #        match_momentum.to_excel(writer, sheet_name='Match Momentum', index=False)
+    #        if not df_heatmaps.empty:
+    #            df_heatmaps.to_excel(writer, sheet_name='Heatmap', index=False)
         
-        output.seek(0)
+        #output.seek(0)
         
         st.success("Datos obtenidos con éxito.")
         
         # Vista previa
         st.subheader("Vista Previa de los Datos")
         st.write("### Team Stats")
-        st.dataframe(match_stats.head())
+        st.dataframe(match_stats_df.head())
 
         st.write("### Player Stats")
-        st.dataframe(player_stats.head())
+        st.dataframe(player_stats_df.head())
 
         st.write("### Average Positions")
-        st.dataframe(average_positions.head())
+        st.dataframe(average_positions_df.head())
 
-        st.write("### Shotmap")
-        st.dataframe(match_shotmap_df.head())
+        #st.write("### Shotmap")
+        #st.dataframe(match_shotmap_df.head())
 
-        st.write("### Match Momentum")
-        st.dataframe(match_momentum.head())
+        #st.write("### Match Momentum")
+        #st.dataframe(match_momentum.head())
 
-        if not df_heatmaps.empty:
-            st.write("### Heatmap")
-            st.dataframe(df_heatmaps.head())
+        #if not df_heatmaps.empty:
+        #    st.write("### Heatmap")
+        #    st.dataframe(df_heatmaps.head())
 
         # Botón para descargar el archivo Excel
-        st.download_button(
-            label="Descargar Archivo Excel",
-            data=output,
-            file_name=f'Sofascore_{match_id}.xlsx',
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        #st.download_button(
+        #    label="Descargar Archivo Excel",
+        #    data=output,
+        #    file_name=f'Sofascore_{match_id}.xlsx',
+        #    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #)
     except Exception as e:
         st.error(f"Error al obtener datos para el partido {match_id}: {e}")

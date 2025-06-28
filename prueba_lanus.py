@@ -1,5 +1,4 @@
 from LanusStats import SofaScore  # Asegúrate de que tu clase está en sofascore_module.py o como sea tu módulo
-import undetected_chromedriver as uc
 
 def obtener_datos_completos_del_partido(URL_match):
     ss = SofaScore()
