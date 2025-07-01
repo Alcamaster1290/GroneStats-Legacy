@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: goal_plot
+Version: 0.1
+Summary: A package to plot a football goal view with net
+Author: Sara Bentelli
+Requires-Dist: matplotlib
+Requires-Dist: numpy
+

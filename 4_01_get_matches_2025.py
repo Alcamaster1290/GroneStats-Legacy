@@ -22,6 +22,7 @@ def parse_match_summary(data):
         "Estadio": data["venue"]["name"],
         "Ciudad": data["venue"]["city"]["name"],
         "Fecha": pd.to_datetime(data["startTimestamp"], unit="s"),
+        "Arbitro": data["referee"]["name"],
     }
 
     return pd.DataFrame([resumen])
@@ -72,7 +73,6 @@ if st.button("Obtener Datos y Generar Excel"):
         player_stats_df = pd.concat([player_stats_home, player_stats_away], ignore_index=True)
 
         # Posiciones promedio de los jugadores
-        average_positions = sofascore.get_players_average_positions(match_url) 
         average_positions_home, average_positions_away = sofascore.get_players_average_positions(match_url)
         average_positions_home["Equipo"] = "Local"
         average_positions_away["Equipo"] = "Visitante"
@@ -83,25 +83,21 @@ if st.button("Obtener Datos y Generar Excel"):
         average_positions_df = pd.concat([average_positions_home, average_positions_away], ignore_index=True)
 
 
-        #match_shotmap_df = sofascore.scrape_match_shots(match_id)
-        #match_momentum = sofascore.scrape_match_momentum(match_id)
-        #heatmap_data = sofascore.scrape_heatmaps(match_id)
+        match_shotmap_df = sofascore.get_match_shotmap(match_url)
+        match_shotmap_df = rename_duplicate_columns(match_shotmap_df)
 
-        #heatmap_list = [{"player": pid, "heatmap": heatmap} for pid, heatmap in heatmap_data.items()] if heatmap_data else []
-        #df_heatmaps = pd.DataFrame(heatmap_list) if heatmap_list else pd.DataFrame(columns=["player", "heatmap"])
+        match_momentum = sofascore.get_match_momentum(match_url)
 
         # Guardar en memoria en lugar de archivo local
-        #output = BytesIO()
-        #with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        #    match_stats.to_excel(writer, sheet_name='Team Stats', index=False)
-    #        player_stats.to_excel(writer, sheet_name='Player Stats', index=False)
-    #        average_positions.to_excel(writer, sheet_name='Average Positions', index=False)
-    #        match_shotmap_df.to_excel(writer, sheet_name='Shotmap', index=False)
-    #        match_momentum.to_excel(writer, sheet_name='Match Momentum', index=False)
-    #        if not df_heatmaps.empty:
-    #            df_heatmaps.to_excel(writer, sheet_name='Heatmap', index=False)
-        
-        #output.seek(0)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            match_stats_df.to_excel(writer, sheet_name='Team Stats', index=False)
+            player_stats_df.to_excel(writer, sheet_name='Player Stats', index=False)
+            average_positions_df.to_excel(writer, sheet_name='Average Positions', index=False)
+            match_shotmap_df.to_excel(writer, sheet_name='Shotmap', index=False)
+            match_momentum.to_excel(writer, sheet_name='Match Momentum', index=False)
+
+        output.seek(0)
         
         st.success("Datos obtenidos con éxito.")
         
@@ -116,22 +112,19 @@ if st.button("Obtener Datos y Generar Excel"):
         st.write("### Average Positions")
         st.dataframe(average_positions_df.head())
 
-        #st.write("### Shotmap")
-        #st.dataframe(match_shotmap_df.head())
+        st.write("### Shotmap")
+        st.dataframe(match_shotmap_df.head())
 
-        #st.write("### Match Momentum")
-        #st.dataframe(match_momentum.head())
+        st.write("### Match Momentum")
+        st.dataframe(match_momentum.head())
 
-        #if not df_heatmaps.empty:
-        #    st.write("### Heatmap")
-        #    st.dataframe(df_heatmaps.head())
 
         # Botón para descargar el archivo Excel
-        #st.download_button(
-        #    label="Descargar Archivo Excel",
-        #    data=output,
-        #    file_name=f'Sofascore_{match_id}.xlsx',
-        #    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        #)
+        st.download_button(
+            label="Descargar Archivo Excel",
+            data=output,
+            file_name=f'Sofascore_{match_id}.xlsx',
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     except Exception as e:
         st.error(f"Error al obtener datos para el partido {match_id}: {e}")
