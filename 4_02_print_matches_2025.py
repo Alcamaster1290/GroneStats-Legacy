@@ -46,33 +46,9 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
     Retorna:
         dict: Diccionario con los DataFrames de tiros al arco y fuera del arco para ambos equipos.
     """
-    import json
-
-    # Función para corregir el formato del JSON y extraer el nombre
-    def corregir_y_extraer_nombre(player_string):
-        try:
-            # Reemplazar comillas simples por comillas dobles
-            player_string = player_string.replace("'", '"')
-            # Convertir la cadena a un diccionario JSON
-            player_dict = json.loads(player_string)
-            return player_dict.get('name', 'Nombre no encontrado') 
-        except json.JSONDecodeError:
-            return "Error en el formato JSON"
 
     # Aplicar la corrección y extracción del nombre
-    df_shotmap['player_name'] = df_shotmap['player'].apply(corregir_y_extraer_nombre)
-
-    def corregir_y_extraer_numero(player_string):
-        try:
-            # Reemplazar comillas simples por comillas dobles
-            player_string = player_string.replace("'", '"')
-            # Convertir la cadena a un diccionario JSON
-            player_dict = json.loads(player_string)
-            return player_dict.get('jerseyNumber', 'Número no encontrado') 
-        except json.JSONDecodeError:
-            return "Error en el formato JSON"
-        
-    df_shotmap['jerseyNumber'] = df_shotmap['player'].apply(corregir_y_extraer_numero)
+    df_shotmap['player_name'] = df_shotmap['name']        
 
     # Aplicar colores basados en el tipo de tiro
     df_shotmap['color'] = df_shotmap['shotType'].apply(apply_color_based_on_shot_type)
@@ -81,11 +57,6 @@ def procesar_tiros_y_goles(df_shotmap, df_average_positions, selected_team, oppo
     shots_on_target = ['save', 'goal']  # Tiros al arco
     shots_off_target = ['miss', 'post', 'block']  # Tiros fuera del arco
 
-    df_shotmap['coordinates'] = df_shotmap['playerCoordinates'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else {})
-    df_shotmap['x'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('x', None))
-    df_shotmap['y'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('y', None))
-    df_shotmap['z'] = df_shotmap['coordinates'].apply(lambda coord: coord.get('z', None))
-    
     # Procesar goles
     goals_df = df_shotmap[df_shotmap['shotType'] == 'goal']
     
@@ -345,7 +316,7 @@ def graficar_todos_los_tiros(df_local, df_visitante):
     st.pyplot(fig, use_container_width=True)
     return fig
 
-# Ejemplo de uso en Streamlit
+
 uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
 if uploaded_file is not None:
@@ -361,10 +332,10 @@ if uploaded_file is not None:
         df_match_momentum = pd.read_excel(xls, sheet_name='Match Momentum')
         
         # Verificar si la hoja 'Heatmap' existe antes de intentar leerla
-        if 'Heatmap' in xls.sheet_names:
-            df_heatmaps = pd.read_excel(xls, sheet_name='Heatmap')
-        else:
-            df_heatmaps = pd.DataFrame()  # DataFrame vacío si no existe la hoja
+        #if 'Heatmap' in xls.sheet_names:
+        #    df_heatmaps = pd.read_excel(xls, sheet_name='Heatmap')
+        #else:
+        #    df_heatmaps = pd.DataFrame()  # DataFrame vacío si no existe la hoja
 
         # Procesar los tiros y goles
         selected_team = "Equipo Local"  # Cambiar por el nombre del equipo seleccionado
