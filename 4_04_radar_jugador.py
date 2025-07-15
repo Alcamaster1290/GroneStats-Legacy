@@ -276,4 +276,6 @@ if __name__ == "__main__":
         fig.show()
 
         df_referencia = filtrar_jugadores_referencia(df, min_minutos=400)
+        print(f"Jugadores extremos filtrados: {len(df_referencia)}")
+        print(df_referencia[['player', 'team', 'minutesPlayed']].head(50))
         print(f"\n\u2794 Muestra de {len(df_referencia)} jugadores extremos (minutos mínimos: {df_referencia['minutesPlayed'].min():.0f} min)")
